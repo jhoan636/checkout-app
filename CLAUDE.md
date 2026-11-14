@@ -8,6 +8,8 @@ Single-product store with a credit card checkout paid through an external paymen
 - Never commit secrets. Gateway URLs and keys come only from environment variables; `.env.example` holds placeholders.
 - Never store or log card numbers, CVC or expiry dates. The browser tokenizes the card with the gateway public key; the API only receives the token.
 - Tests are written with Jest, in the same step as the code they cover. Coverage must stay above 80% in `api/` and `web/`.
+- TDD for business logic (domain rules, use cases, validators, reducers): write the failing test first, then the minimum code to pass, then refactor. Configuration, database adapters and styles are tested alongside the code.
+- Unit tests never touch a real database or the network; they use in-memory fakes of the ports.
 - All code, comments, docs and commit messages are in English.
 - Do not run `git commit` or `git push`. The repository owner commits; propose a Conventional Commits message instead (`feat(api): ...`, `feat(web): ...`, `test: ...`, `chore: ...`, `docs: ...`).
 - Work in small steps. Finish one step, run its tests, and stop for review before starting the next.
