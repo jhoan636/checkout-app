@@ -1,0 +1,22 @@
+# Local development database. Values come from api/.env:
+#   docker compose --env-file api/.env up -d
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: checkout-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:?set DB_USER in api/.env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in api/.env}
+      POSTGRES_DB: ${DB_NAME:?set DB_NAME in api/.env}
+    ports:
+      - '127.0.0.1:${DB_PORT:-5433}:5432'
+    volumes:
+      - checkout-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  checkout-postgres-data:
