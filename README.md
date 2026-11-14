@@ -40,6 +40,27 @@ _TBD_
 
 ## Running locally
 
+Requirements: Node 22 and Docker.
+
+### API
+
+```bash
+cd api
+npm install
+cp .env.example .env   # then set DB_PASSWORD
+npm run db:up          # PostgreSQL in Docker, on port 5433
+npm run start:dev      # http://localhost:3000/health
+```
+
+| Command | What it does |
+|---|---|
+| `npm test` | Unit tests |
+| `npm run test:cov` | Unit tests with coverage (fails under 80%) |
+| `npm run test:e2e` | End-to-end tests, needs the database running |
+| `npm run db:down` | Stops the database |
+
+### Web
+
 _TBD_
 
 ## Security
