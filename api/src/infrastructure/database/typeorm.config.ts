@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { join } from 'node:path';
 import { Env } from '../config/env.validation';
 
 export function buildTypeOrmOptions(
@@ -18,5 +19,8 @@ export function buildTypeOrmOptions(
     autoLoadEntities: true,
     // The schema only changes through migrations.
     synchronize: false,
+    migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
+    // Pending migrations are applied when the app starts.
+    migrationsRun: true,
   };
 }
