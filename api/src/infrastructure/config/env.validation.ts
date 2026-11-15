@@ -13,6 +13,8 @@ export interface Env {
   GATEWAY_TIMEOUT_MS: number;
   BASE_FEE_IN_CENTS: number;
   DELIVERY_FEE_IN_CENTS: number;
+  CORS_ORIGINS: string[];
+  RATE_LIMIT_PER_MINUTE: number;
 }
 
 type RawEnv = Record<string, unknown>;
@@ -25,6 +27,9 @@ const MAX_GATEWAY_TIMEOUT_MS = 60_000;
 const DEFAULT_BASE_FEE_IN_CENTS = '300000';
 const DEFAULT_DELIVERY_FEE_IN_CENTS = '1200000';
 const MAX_FEE_IN_CENTS = 100_000_000;
+const DEFAULT_CORS_ORIGINS = 'http://localhost:5173';
+const DEFAULT_RATE_LIMIT_PER_MINUTE = '120';
+const MAX_RATE_LIMIT_PER_MINUTE = 10_000;
 
 /**
  * Validates the process environment at startup so a missing or malformed
@@ -100,6 +105,28 @@ export function validateEnv(raw: RawEnv): Env {
     return parsed;
   };
 
+  /** Comma separated list of exact origins, such as https://shop.example.com */
+  const origins = (name: string, fallback: string): string[] => {
+    const value = raw[name] ?? fallback;
+    const list =
+      typeof value === 'string'
+        ? value
+            .split(',')
+            .map((origin) => origin.trim())
+            .filter((origin) => origin !== '')
+        : [];
+    const areOrigins =
+      list.length > 0 &&
+      list.every(
+        (origin) => URL.canParse(origin) && new URL(origin).origin === origin,
+      );
+    if (!areOrigins) {
+      errors.push(`${name} must be a comma separated list of origins`);
+      return [];
+    }
+    return list;
+  };
+
   const env: Env = {
     PORT: port('PORT', DEFAULT_PORT),
     DB_HOST: text('DB_HOST'),
@@ -129,6 +156,13 @@ export function validateEnv(raw: RawEnv): Env {
       DEFAULT_DELIVERY_FEE_IN_CENTS,
       0,
       MAX_FEE_IN_CENTS,
+    ),
+    CORS_ORIGINS: origins('CORS_ORIGINS', DEFAULT_CORS_ORIGINS),
+    RATE_LIMIT_PER_MINUTE: integer(
+      'RATE_LIMIT_PER_MINUTE',
+      DEFAULT_RATE_LIMIT_PER_MINUTE,
+      1,
+      MAX_RATE_LIMIT_PER_MINUTE,
     ),
   };
 

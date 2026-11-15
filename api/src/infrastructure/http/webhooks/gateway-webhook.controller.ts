@@ -7,6 +7,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { HandleGatewayEventUseCase } from '../../../application/use-cases/handle-gateway-event.use-case';
 import { Env } from '../../config/env.validation';
 import { parseGatewayEvent } from '../../gateway/gateway-event';
@@ -22,6 +29,9 @@ const ACK: WebhookAck = { received: true };
  * it gets a 200, so every authentic event is acknowledged, even one that this
  * application decides to ignore.
  */
+// The gateway sends bursts from a few addresses; the signature protects it.
+@SkipThrottle()
+@ApiTags('webhooks')
 @Controller('webhooks')
 export class GatewayWebhookController {
   constructor(
@@ -31,6 +41,14 @@ export class GatewayWebhookController {
 
   @Post('payment-gateway')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Receive a payment notification from the gateway',
+    description:
+      'Only events whose checksum matches the shared events secret are ' +
+      'accepted. Receiving the same event again has no effect.',
+  })
+  @ApiOkResponse({ description: 'Event acknowledged.' })
+  @ApiUnauthorizedResponse({ description: 'The signature is not valid.' })
   async receive(@Body() body: unknown): Promise<WebhookAck> {
     const event = parseGatewayEvent(
       body,

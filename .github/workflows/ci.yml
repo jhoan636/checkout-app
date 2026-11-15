@@ -19,6 +19,32 @@ jobs:
     defaults:
       run:
         working-directory: api
+    # Throwaway database for the end-to-end tests; it only lives for this job.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: checkout
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: checkout
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U checkout -d checkout"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    # Placeholder values: the gateway is replaced by a fake in these tests.
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: checkout
+      DB_PASSWORD: ci-only-password
+      DB_NAME: checkout
+      GATEWAY_BASE_URL: https://gateway.invalid/v1
+      GATEWAY_PRIVATE_KEY: ci-placeholder
+      GATEWAY_INTEGRITY_SECRET: ci-placeholder
+      GATEWAY_EVENTS_SECRET: ci-placeholder
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,6 +57,8 @@ jobs:
       - run: npm run build
       # Fails when coverage drops below 80%.
       - run: npm run test:cov
+      # Real HTTP and real PostgreSQL.
+      - run: npm run test:e2e
 
   web:
     name: Web (lint, build, tests)
