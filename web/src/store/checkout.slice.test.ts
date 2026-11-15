@@ -1,5 +1,4 @@
 import {
-  catalogOpened,
   checkoutReducer,
   checkoutStarted,
   detailsClosed,
@@ -28,9 +27,9 @@ const details: PurchaseDetails = {
 }
 
 describe('checkout slice', () => {
-  it('starts on the catalogue with one unit', () => {
+  it('starts on the product page with one unit', () => {
     expect(checkoutReducer(undefined, { type: 'init' })).toEqual({
-      step: 'catalog',
+      step: 'product',
       productId: null,
       quantity: 1,
       customer: null,
@@ -39,7 +38,7 @@ describe('checkout slice', () => {
     })
   })
 
-  it('opens the page of the chosen product with one unit', () => {
+  it('shows another product and goes back to one unit', () => {
     const state = checkoutReducer(
       { ...initial, productId: 'prod-1', quantity: 4 },
       productSelected('prod-2'),
@@ -52,22 +51,10 @@ describe('checkout slice', () => {
     })
   })
 
-  it('goes back to the catalogue from a product', () => {
-    const state = checkoutReducer(
-      { ...initial, step: 'product', productId: 'prod-1' },
-      catalogOpened(),
-    )
+  it('does not change the product in the middle of a payment', () => {
+    const paying = { ...initial, step: 'details' as const, productId: 'prod-1' }
 
-    expect(state.step).toBe('catalog')
-  })
-
-  it('does not leave the checkout for the catalogue half way', () => {
-    const state = checkoutReducer(
-      { ...initial, step: 'summary', productId: 'prod-1' },
-      catalogOpened(),
-    )
-
-    expect(state.step).toBe('summary')
+    expect(checkoutReducer(paying, productSelected('prod-2'))).toEqual(paying)
   })
 
   it('changes the quantity', () => {
@@ -86,7 +73,7 @@ describe('checkout slice', () => {
 
   it('moves to the details step when the checkout starts', () => {
     const state = checkoutReducer(
-      { ...initial, step: 'product', productId: 'prod-1' },
+      { ...initial, productId: 'prod-1' },
       checkoutStarted(),
     )
 
@@ -94,21 +81,13 @@ describe('checkout slice', () => {
   })
 
   it('does not start a checkout without a product', () => {
-    const state = checkoutReducer(
-      { ...initial, step: 'product' },
-      checkoutStarted(),
-    )
-
-    expect(state.step).toBe('product')
+    expect(checkoutReducer(initial, checkoutStarted()).step).toBe('product')
   })
 
-  it('does not start a checkout from the catalogue', () => {
-    const state = checkoutReducer(
-      { ...initial, productId: 'prod-1' },
-      checkoutStarted(),
-    )
+  it('does not start a second checkout over the first one', () => {
+    const onSummary = { ...initial, step: 'summary' as const, productId: 'prod-1' }
 
-    expect(state.step).toBe('catalog')
+    expect(checkoutReducer(onSummary, checkoutStarted()).step).toBe('summary')
   })
 
   describe('details', () => {

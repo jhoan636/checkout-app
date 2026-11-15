@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
+import type { Product } from '../../api/types'
 import { ProductPhoto } from '../../components/ProductPhoto'
 import { StockBadge } from '../../components/StockBadge'
 import { formatCop } from '../../lib/money'
 import {
-  catalogOpened,
   checkoutStarted,
   MAX_UNITS_PER_PURCHASE,
+  productSelected,
   quantityChanged,
 } from '../../store/checkout.slice'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
@@ -47,20 +48,60 @@ function QuantityStepper({
   )
 }
 
+/** The rest of the store, one tap away from the product being shown. */
+function MoreProducts({
+  products,
+  onShow,
+}: {
+  products: Product[]
+  onShow: (id: string) => void
+}) {
+  if (products.length === 0) {
+    return null
+  }
+  return (
+    <section className="more" aria-labelledby="more-products">
+      <h3 id="more-products">More products</h3>
+      <ul className="more__list">
+        {products.map((item) => (
+          <li key={item.id}>
+            <button
+              type="button"
+              className="more__item"
+              onClick={() => onShow(item.id)}
+            >
+              <span className="more__frame">
+                <ProductPhoto product={item} className="more__photo" decorative />
+              </span>
+              <span className="more__name">{item.name}</span>
+              <span className="more__price">
+                {item.stock === 0 ? 'Sold out' : formatCop(item.priceInCents)}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 /** One product: what it is, what it costs, how many are left, and the way to pay. */
 export function ProductPage() {
   const dispatch = useAppDispatch()
   const { productId, quantity } = useAppSelector((state) => state.checkout)
-  const product = useAppSelector((state) =>
-    state.products.items.find((item) => item.id === productId),
-  )
+  const items = useAppSelector((state) => state.products.items)
 
-  // A product that is no longer in the store sends the customer back.
+  // Without a choice, the first product that can be bought is shown.
+  const product =
+    items.find((item) => item.id === productId) ??
+    items.find((item) => item.stock > 0) ??
+    items[0]
+
   useEffect(() => {
-    if (!product) {
-      dispatch(catalogOpened())
+    if (product && product.id !== productId) {
+      dispatch(productSelected(product.id))
     }
-  }, [dispatch, product])
+  }, [dispatch, product, productId])
 
   if (!product) {
     return null
@@ -73,24 +114,6 @@ export function ProductPage() {
 
   return (
     <section className="product">
-      <button
-        type="button"
-        className="product__back"
-        onClick={() => dispatch(catalogOpened())}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M15 5l-7 7 7 7"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        All products
-      </button>
-
       <div className="product__layout">
         <div className="product__frame">
           <ProductPhoto product={product} className="product__photo" eager />
@@ -122,6 +145,11 @@ export function ProductPage() {
           </p>
         </div>
       </div>
+
+      <MoreProducts
+        products={items.filter((item) => item.id !== product.id)}
+        onShow={(id) => dispatch(productSelected(id))}
+      />
 
       <footer className="bar">
         <div className="bar__inner">

@@ -14,7 +14,6 @@
 
   --accent: #1d6fe0;
   --accent-strong: #1559b8;
-  --accent-soft: #e8f1fd;
   --on-accent: #ffffff;
 
   --ok: #12804a;
@@ -22,7 +21,6 @@
   --warn: #9a5b00;
   --warn-soft: #fdf0d5;
   --bad: #c9271b;
-  --bad-soft: #fde8e6;
   --note: #fff7d9;
   --note-ink: #6b5200;
 
@@ -47,7 +45,6 @@
   --space-6: 28px;
 
   --shadow-float: 0 10px 24px -14px rgb(var(--shadow-rgb) / 0.4);
-  --shadow-sheet: 0 -16px 32px -18px rgb(var(--shadow-rgb) / 0.35);
 
   /* Smallest supported screen: iPhone SE, 375 CSS pixels wide. */
   --page-max: 960px;
@@ -67,7 +64,6 @@
 
     --accent: #4d94f5;
     --accent-strong: #76adf8;
-    --accent-soft: #16263d;
     --on-accent: #0b1220;
 
     --ok: #4cd08a;
@@ -75,7 +71,6 @@
     --warn: #f0b955;
     --warn-soft: #33270f;
     --bad: #ff7b70;
-    --bad-soft: #3a1a17;
     --note: #2b2610;
     --note-ink: #ecd58a;
 

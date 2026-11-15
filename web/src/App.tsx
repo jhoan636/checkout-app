@@ -1,18 +1,17 @@
 import { useEffect } from 'react'
-import { CatalogPage } from './features/catalog/CatalogPage'
-import { ProductsGate } from './features/catalog/ProductsGate'
 import { DetailsModal } from './features/details/DetailsModal'
 import { ProductPage } from './features/product/ProductPage'
+import { ProductsGate } from './features/product/ProductsGate'
 import { useAppSelector } from './store/hooks'
 
 function App() {
   const step = useAppSelector((state) => state.checkout.step)
-  const page = step === 'catalog' ? 'catalog' : 'product'
+  const productId = useAppSelector((state) => state.checkout.productId)
 
-  // A new page starts at the top, not where the previous one was scrolled.
+  // Another product starts at the top, not where the previous one was scrolled.
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [page])
+  }, [productId])
 
   return (
     <div className="app">
@@ -33,7 +32,7 @@ function App() {
       <main className="app__main">
         <h1 className="visually-hidden">Product Checkout</h1>
         <ProductsGate>
-          {page === 'catalog' ? <CatalogPage /> : <ProductPage />}
+          <ProductPage />
           {step === 'details' && <DetailsModal />}
         </ProductsGate>
       </main>

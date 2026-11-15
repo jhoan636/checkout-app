@@ -3,6 +3,9 @@ import userEvent from '@testing-library/user-event'
 import App from './App'
 import { renderWithStore } from './test/render'
 
+const productTitle = (name: string) =>
+  screen.findByRole('heading', { level: 2, name })
+
 describe('App', () => {
   it('shows the store heading', () => {
     renderWithStore(<App />)
@@ -12,26 +15,20 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 
-  it('opens on the catalogue', async () => {
+  it('opens on the product page', async () => {
     renderWithStore(<App />)
 
+    expect(await productTitle('Aurora Wireless Headphones')).toBeInTheDocument()
     expect(
-      await screen.findByRole('button', { name: /Aurora Wireless Headphones/ }),
-    ).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Pay with credit card' })).toBeNull()
-  })
-
-  it('goes from the catalogue to the product and then to the payment details', async () => {
-    const user = userEvent.setup()
-    renderWithStore(<App />)
-
-    await user.click(
-      await screen.findByRole('button', { name: /Aurora Wireless Headphones/ }),
-    )
-    expect(
-      screen.getByRole('heading', { name: 'Aurora Wireless Headphones' }),
+      screen.getByRole('button', { name: 'Pay with credit card' }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('opens the payment details when the customer decides to pay', async () => {
+    const user = userEvent.setup()
+    renderWithStore(<App />)
+    await productTitle('Aurora Wireless Headphones')
 
     await user.click(screen.getByRole('button', { name: 'Pay with credit card' }))
 
@@ -43,27 +40,23 @@ describe('App', () => {
   it('keeps the product page behind the payment details', async () => {
     const user = userEvent.setup()
     renderWithStore(<App />)
-    await user.click(
-      await screen.findByRole('button', { name: /Nimbus Mechanical Keyboard/ }),
-    )
+    await productTitle('Aurora Wireless Headphones')
     await user.click(screen.getByRole('button', { name: 'Pay with credit card' }))
 
     await user.click(screen.getByRole('button', { name: 'Close' }))
 
-    expect(
-      screen.getByRole('heading', { name: 'Nimbus Mechanical Keyboard' }),
-    ).toBeInTheDocument()
+    expect(await productTitle('Aurora Wireless Headphones')).toBeInTheDocument()
   })
 
-  it('starts each page at the top', async () => {
+  it('starts at the top when another product is shown', async () => {
     const user = userEvent.setup()
     renderWithStore(<App />)
-    const card = await screen.findByRole('button', {
-      name: /Aurora Wireless Headphones/,
-    })
+    await productTitle('Aurora Wireless Headphones')
     jest.mocked(window.scrollTo).mockClear()
 
-    await user.click(card)
+    await user.click(
+      screen.getByRole('button', { name: /Nimbus Mechanical Keyboard/ }),
+    )
 
     expect(window.scrollTo).toHaveBeenCalledWith(0, 0)
   })

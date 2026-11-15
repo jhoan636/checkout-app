@@ -7,12 +7,7 @@ import type { CardBrand } from '../lib/card'
 export const MAX_UNITS_PER_PURCHASE = 10
 
 /** The checkout is a sequence of steps; the customer is always on one. */
-export type CheckoutStep =
-  | 'catalog'
-  | 'product'
-  | 'details'
-  | 'summary'
-  | 'status'
+export type CheckoutStep = 'product' | 'details' | 'summary' | 'status'
 
 /** Enough to recognise the card on screen. Never the number or the code. */
 export interface CardSummary {
@@ -37,7 +32,7 @@ export interface CheckoutState {
 }
 
 export const initialCheckoutState: CheckoutState = {
-  step: 'catalog',
+  step: 'product',
   productId: null,
   quantity: 1,
   customer: null,
@@ -56,16 +51,13 @@ const checkoutSlice = createSlice({
   name: 'checkout',
   initialState: initialCheckoutState,
   reducers: {
-    /** Choosing a product in the catalogue opens its page. */
+    /** The product page shows another product, starting again at one unit. */
     productSelected(state, action: PayloadAction<string>) {
+      if (state.step !== 'product') {
+        return
+      }
       state.productId = action.payload
       state.quantity = 1
-      state.step = 'product'
-    },
-    catalogOpened(state) {
-      if (state.step === 'product') {
-        state.step = 'catalog'
-      }
     },
     quantityChanged(state, action: PayloadAction<number>) {
       state.quantity = clampQuantity(action.payload)
@@ -95,7 +87,6 @@ const checkoutSlice = createSlice({
 
 export const {
   productSelected,
-  catalogOpened,
   quantityChanged,
   checkoutStarted,
   detailsSubmitted,
