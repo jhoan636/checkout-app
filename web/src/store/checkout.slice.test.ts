@@ -1,17 +1,41 @@
 import {
   checkoutReducer,
   checkoutStarted,
+  detailsClosed,
+  detailsSubmitted,
+  initialCheckoutState,
   MAX_UNITS_PER_PURCHASE,
   productSelected,
   quantityChanged,
 } from './checkout.slice'
-import type { CheckoutState } from './checkout.slice'
+import type { PurchaseDetails } from './checkout.slice'
 
-const initial: CheckoutState = { step: 'product', productId: null, quantity: 1 }
+const initial = initialCheckoutState
+
+const details: PurchaseDetails = {
+  customer: {
+    fullName: 'Ana Maria Perez',
+    email: 'ana@example.com',
+    phone: '3001234567',
+  },
+  delivery: {
+    addressLine: 'Calle 10 # 20-30',
+    city: 'Medellin',
+    region: 'Antioquia',
+  },
+  card: { brand: 'visa', lastFour: '4242' },
+}
 
 describe('checkout slice', () => {
   it('starts on the product step with one unit', () => {
-    expect(checkoutReducer(undefined, { type: 'init' })).toEqual(initial)
+    expect(checkoutReducer(undefined, { type: 'init' })).toEqual({
+      step: 'product',
+      productId: null,
+      quantity: 1,
+      customer: null,
+      delivery: null,
+      card: null,
+    })
   })
 
   it('selects a product and goes back to one unit', () => {
@@ -20,7 +44,11 @@ describe('checkout slice', () => {
       productSelected('prod-2'),
     )
 
-    expect(state).toEqual({ step: 'product', productId: 'prod-2', quantity: 1 })
+    expect(state).toMatchObject({
+      step: 'product',
+      productId: 'prod-2',
+      quantity: 1,
+    })
   })
 
   it('changes the quantity', () => {
@@ -48,5 +76,42 @@ describe('checkout slice', () => {
 
   it('does not start a checkout without a product', () => {
     expect(checkoutReducer(initial, checkoutStarted()).step).toBe('product')
+  })
+
+  describe('details', () => {
+    const onDetails = { ...initial, step: 'details' as const, productId: 'prod-1' }
+
+    it('keeps the details and moves to the summary', () => {
+      const state = checkoutReducer(onDetails, detailsSubmitted(details))
+
+      expect(state).toMatchObject({ step: 'summary', ...details })
+    })
+
+    it('ignores details sent from another step', () => {
+      const state = checkoutReducer(initial, detailsSubmitted(details))
+
+      expect(state).toEqual(initial)
+    })
+
+    it('goes back to the product when the form is closed', () => {
+      expect(checkoutReducer(onDetails, detailsClosed()).step).toBe('product')
+    })
+
+    it('remembers the contact details after going back', () => {
+      const submitted = checkoutReducer(onDetails, detailsSubmitted(details))
+      const state = checkoutReducer(
+        { ...submitted, step: 'details' },
+        detailsClosed(),
+      )
+
+      expect(state.customer).toEqual(details.customer)
+      expect(state.delivery).toEqual(details.delivery)
+    })
+
+    it('does not close anything from another step', () => {
+      const onSummary = { ...onDetails, step: 'summary' as const }
+
+      expect(checkoutReducer(onSummary, detailsClosed()).step).toBe('summary')
+    })
   })
 })

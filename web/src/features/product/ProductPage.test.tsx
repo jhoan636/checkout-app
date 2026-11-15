@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { initialCheckoutState } from '../../store/checkout.slice'
 import { fakeApi, headphones, keyboard, renderWithStore } from '../../test/render'
 import { ProductPage } from './ProductPage'
 
@@ -157,7 +158,11 @@ describe('ProductPage', () => {
       const user = userEvent.setup()
       renderWithStore(<ProductPage />, {
         state: {
-          checkout: { step: 'product', productId: keyboard.id, quantity: 3 },
+          checkout: {
+            ...initialCheckoutState,
+            productId: keyboard.id,
+            quantity: 3,
+          },
         },
       })
       await card('Nimbus Mechanical Keyboard')
@@ -188,7 +193,7 @@ describe('ProductPage', () => {
 
       await user.click(payButton())
 
-      expect(store.getState().checkout).toEqual({
+      expect(store.getState().checkout).toMatchObject({
         step: 'details',
         productId: headphones.id,
         quantity: 2,

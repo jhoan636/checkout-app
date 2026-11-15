@@ -1,0 +1,256 @@
+import { fireEvent, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { initialCheckoutState } from '../../store/checkout.slice'
+import type { CheckoutState } from '../../store/checkout.slice'
+import { headphones, keyboard, renderWithStore } from '../../test/render'
+import { DetailsModal } from './DetailsModal'
+
+const now = new Date(2026, 10, 15)
+
+const onDetails: CheckoutState = {
+  ...initialCheckoutState,
+  step: 'details',
+  productId: headphones.id,
+  quantity: 2,
+}
+
+const renderModal = (checkout: CheckoutState = onDetails) =>
+  renderWithStore(<DetailsModal now={now} />, {
+    state: {
+      checkout,
+      products: { items: [headphones, keyboard], status: 'ready', error: null },
+    },
+  })
+
+const field = (label: string) => screen.getByLabelText(label)
+
+const fillEverything = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.type(field('Card number'), '4242424242424242')
+  await user.type(field('Name on card'), 'Ana Maria Perez')
+  await user.type(field('Expiry date'), '1228')
+  await user.type(field('Security code'), '123')
+  await user.type(field('Full name'), 'Ana Maria Perez')
+  await user.type(field('Email'), 'ana@example.com')
+  await user.type(field('Phone'), '3001234567')
+  await user.type(field('Address'), 'Calle 10 # 20-30')
+  await user.type(field('City'), 'Medellin')
+  await user.type(field('State / Department'), 'Antioquia')
+}
+
+describe('DetailsModal', () => {
+  it('opens as a dialog that says what is being paid', () => {
+    renderModal()
+
+    const dialog = screen.getByRole('dialog', { name: 'Payment details' })
+    expect(dialog).toHaveTextContent('Aurora Wireless Headphones')
+    expect(dialog).toHaveTextContent('2 units')
+  })
+
+  it('opens as a native modal where the browser supports it', () => {
+    const showModal = jest.fn()
+    HTMLDialogElement.prototype.showModal = showModal
+
+    renderModal()
+
+    expect(showModal).toHaveBeenCalledTimes(1)
+    delete (HTMLDialogElement.prototype as Partial<HTMLDialogElement>).showModal
+  })
+
+  it('starts with the cursor on the card number', () => {
+    renderModal()
+
+    expect(field('Card number')).toHaveFocus()
+  })
+
+  describe('the card', () => {
+    it('shows no brand before the number says which one it is', () => {
+      renderModal()
+
+      expect(screen.queryByRole('img', { name: 'Visa' })).toBeNull()
+      expect(screen.queryByRole('img', { name: 'MasterCard' })).toBeNull()
+    })
+
+    it('recognises a VISA card and groups its digits', async () => {
+      const user = userEvent.setup()
+      renderModal()
+
+      await user.type(field('Card number'), '4242424242424242')
+
+      expect(field('Card number')).toHaveValue('4242 4242 4242 4242')
+      expect(screen.getByRole('img', { name: 'Visa' })).toBeInTheDocument()
+    })
+
+    it('recognises a MasterCard card', async () => {
+      const user = userEvent.setup()
+      renderModal()
+
+      await user.type(field('Card number'), '5555')
+
+      expect(screen.getByRole('img', { name: 'MasterCard' })).toBeInTheDocument()
+    })
+
+    it('writes the expiry date as month and year', async () => {
+      const user = userEvent.setup()
+      renderModal()
+
+      await user.type(field('Expiry date'), '1228')
+
+      expect(field('Expiry date')).toHaveValue('12/28')
+    })
+
+    it('hides the security code and keeps only three digits', async () => {
+      const user = userEvent.setup()
+      renderModal()
+
+      await user.type(field('Security code'), '12a345')
+
+      expect(field('Security code')).toHaveValue('123')
+      expect(field('Security code')).toHaveAttribute('type', 'password')
+    })
+
+    it('tells the browser these are card fields', () => {
+      renderModal()
+
+      expect(field('Card number')).toHaveAttribute('autocomplete', 'cc-number')
+      expect(field('Card number')).toHaveAttribute('inputmode', 'numeric')
+      expect(field('Security code')).toHaveAttribute('autocomplete', 'cc-csc')
+    })
+  })
+
+  describe('validation', () => {
+    it('explains every missing field and stays on the form', async () => {
+      const user = userEvent.setup()
+      const { store } = renderModal()
+
+      await user.click(screen.getByRole('button', { name: 'Continue' }))
+
+      expect(
+        screen.getByText('Enter a valid VISA or MasterCard number.'),
+      ).toBeInTheDocument()
+      expect(screen.getByText('Enter the delivery address.')).toBeInTheDocument()
+      expect(field('Card number')).toHaveAttribute('aria-invalid', 'true')
+      expect(field('Card number')).toHaveFocus()
+      expect(store.getState().checkout.step).toBe('details')
+    })
+
+    it('says nothing about a field the customer has not visited', () => {
+      renderModal()
+
+      expect(screen.queryByText('Enter a valid email address.')).toBeNull()
+      expect(field('Email')).not.toHaveAttribute('aria-invalid', 'true')
+    })
+
+    it('checks a field when the customer leaves it', async () => {
+      const user = userEvent.setup()
+      renderModal()
+
+      await user.type(field('Email'), 'ana@')
+      await user.tab()
+
+      expect(screen.getByText('Enter a valid email address.')).toBeInTheDocument()
+      expect(field('Email')).toHaveAccessibleDescription(
+        'Enter a valid email address.',
+      )
+    })
+
+    it('clears the message once the field is fixed', async () => {
+      const user = userEvent.setup()
+      renderModal()
+      await user.type(field('Email'), 'ana@')
+      await user.tab()
+
+      await user.type(field('Email'), 'example.com')
+
+      expect(screen.queryByText('Enter a valid email address.')).toBeNull()
+    })
+  })
+
+  describe('continuing', () => {
+    it('keeps the contact details and moves to the summary', async () => {
+      const user = userEvent.setup()
+      const { store } = renderModal()
+      await fillEverything(user)
+
+      await user.click(screen.getByRole('button', { name: 'Continue' }))
+
+      expect(store.getState().checkout).toMatchObject({
+        step: 'summary',
+        customer: {
+          fullName: 'Ana Maria Perez',
+          email: 'ana@example.com',
+          phone: '3001234567',
+        },
+        delivery: {
+          addressLine: 'Calle 10 # 20-30',
+          city: 'Medellin',
+          region: 'Antioquia',
+        },
+        card: { brand: 'visa', lastFour: '4242' },
+      })
+    })
+
+    it('never puts the card number or the security code in the store', async () => {
+      const user = userEvent.setup()
+      const { store } = renderModal()
+      await fillEverything(user)
+
+      await user.click(screen.getByRole('button', { name: 'Continue' }))
+
+      const saved = JSON.stringify(store.getState())
+      expect(saved).not.toContain('4242424242424242')
+      expect(saved).not.toContain('4242 4242 4242 4242')
+      expect(saved).not.toContain('"123"')
+      expect(saved).not.toContain('12/28')
+    })
+  })
+
+  describe('leaving', () => {
+    it('goes back to the product with the close button', async () => {
+      const user = userEvent.setup()
+      const { store } = renderModal()
+
+      await user.click(screen.getByRole('button', { name: 'Close' }))
+
+      expect(store.getState().checkout.step).toBe('product')
+    })
+
+    it('goes back to the product with the Escape key', () => {
+      const { store } = renderModal()
+
+      // Browsers turn Escape on a modal dialog into a "cancel" event.
+      fireEvent(screen.getByRole('dialog'), new Event('cancel'))
+
+      expect(store.getState().checkout.step).toBe('product')
+    })
+  })
+
+  it('brings back the contact details already given', () => {
+    renderModal({
+      ...onDetails,
+      customer: {
+        fullName: 'Ana Maria Perez',
+        email: 'ana@example.com',
+        phone: '3001234567',
+      },
+      delivery: {
+        addressLine: 'Calle 10 # 20-30',
+        city: 'Medellin',
+        region: 'Antioquia',
+        postalCode: '050021',
+      },
+      card: { brand: 'visa', lastFour: '4242' },
+    })
+
+    expect(field('Full name')).toHaveValue('Ana Maria Perez')
+    expect(field('City')).toHaveValue('Medellin')
+    expect(field('Postal code (optional)')).toHaveValue('050021')
+    // The card is never remembered: it has to be typed again.
+    expect(field('Card number')).toHaveValue('')
+  })
+
+  it('shows nothing when the product is unknown', () => {
+    renderModal({ ...onDetails, productId: 'missing' })
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+})
