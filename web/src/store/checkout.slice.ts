@@ -126,6 +126,13 @@ const checkoutSlice = createSlice({
         state.step = 'status'
       }
     },
+    /** Back to the product with nothing left of the purchase that ended. */
+    checkoutFinished(state) {
+      if (state.step !== 'status') {
+        return state
+      }
+      return { ...initialCheckoutState, productId: state.productId }
+    },
   },
 })
 
@@ -139,5 +146,6 @@ export const {
   detailsClosed,
   summaryClosed,
   paymentStarted,
+  checkoutFinished,
 } = checkoutSlice.actions
 export const checkoutReducer = checkoutSlice.reducer

@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { BrandLogo } from '../../components/BrandLogo'
 import { Modal } from '../../components/Modal'
 import { formatCop } from '../../lib/money'
-import { paymentStarted, summaryClosed } from '../../store/checkout.slice'
+import { summaryClosed } from '../../store/checkout.slice'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { loadQuote } from '../../store/payment.slice'
 import { selectProductById } from '../../store/products.slice'
+import { pay } from '../../store/transaction.slice'
 import './summary.css'
 
 /**
@@ -160,7 +161,7 @@ export function SummaryBackdrop() {
               type="button"
               className="button button--primary"
               disabled={!acceptsTerms || !acceptsDataPolicy}
-              onClick={() => dispatch(paymentStarted())}
+              onClick={() => void dispatch(pay())}
             >
               Pay {formatCop(summary.totalInCents)}
             </button>

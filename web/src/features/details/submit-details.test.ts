@@ -1,6 +1,6 @@
 import { initialCheckoutState } from '../../store/checkout.slice'
 import { createAppStore } from '../../store/store'
-import { fakeApi, fakeGateway } from '../../test/render'
+import { fakeApi, fakeGateway, fakeServices } from '../../test/render'
 import { submitDetails } from './submit-details'
 import type { DetailsValues } from './validation'
 
@@ -21,7 +21,7 @@ const values: DetailsValues = {
 const setup = (gateway = fakeGateway()) => {
   const api = fakeApi()
   const store = createAppStore(
-    { api, gateway },
+    fakeServices({ api, gateway }),
     {
       checkout: { ...initialCheckoutState, step: 'details', productId: 'prod-1' },
     },

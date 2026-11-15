@@ -35,7 +35,7 @@ The store sells a single product, seeded by a database migration. Each purchase 
 | Web: product page | Done |
 | Web: card and delivery form | Done |
 | Web: card tokenization and payment summary | Done |
-| Web: payment and final status | Pending |
+| Web: payment and final status | Done |
 | Web: progress recovery after a refresh | Pending |
 | AWS deployment | Pending |
 
@@ -162,7 +162,7 @@ Results on 2026-11-15:
 |---|---|---|---|---|---|
 | `api/` (unit) | 327 | 99.15% | 92.18% | 98.34% | 99.15% |
 | `api/` (end-to-end, real PostgreSQL) | 22 | – | – | – | – |
-| `web/` (unit) | 207 | 100% | 99.49% | 100% | 100% |
+| `web/` (unit) | 248 | 100% | 99.6% | 100% | 100% |
 
 To reproduce them, run `npm run test:cov` inside `api/` and inside `web/`.
 

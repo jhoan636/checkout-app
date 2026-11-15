@@ -167,14 +167,26 @@ describe('SummaryBackdrop', () => {
       expect(await payButton()).toHaveTextContent('Pay $474.900')
     })
 
-    it('moves on to the payment status', async () => {
+    it('sends the purchase and moves on to the payment status', async () => {
       const user = userEvent.setup()
-      const { store } = renderSummary()
+      const { store, api } = renderSummary()
       await acceptEverything(user)
 
       await user.click(await payButton())
 
       expect(store.getState().checkout.step).toBe('status')
+      expect(api.createTransaction).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          productId: headphones.id,
+          quantity: 1,
+          payment: expect.objectContaining({
+            cardToken: 'tok_test_1',
+            acceptanceToken: 'acc-token',
+            personalDataAuthToken: 'data-token',
+          }),
+        }),
+      )
     })
   })
 

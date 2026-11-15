@@ -1,4 +1,5 @@
 import {
+  checkoutFinished,
   checkoutReducer,
   checkoutStarted,
   detailsClosed,
@@ -229,6 +230,30 @@ describe('checkout slice', () => {
       )
 
       expect(state.step).toBe('details')
+    })
+  })
+
+  describe('finishing', () => {
+    const onStatus = {
+      ...initial,
+      ...details,
+      step: 'status' as const,
+      productId: 'prod-1',
+      quantity: 3,
+      cardToken: 'tok_test_1',
+    }
+
+    it('goes back to the product and forgets the purchase', () => {
+      expect(checkoutReducer(onStatus, checkoutFinished())).toEqual({
+        ...initial,
+        productId: 'prod-1',
+      })
+    })
+
+    it('does not finish a checkout that is still in progress', () => {
+      const onSummary = { ...onStatus, step: 'summary' as const }
+
+      expect(checkoutReducer(onSummary, checkoutFinished())).toEqual(onSummary)
     })
   })
 })

@@ -1,0 +1,93 @@
+/* Mobile first: one centred column with the result and what to do next. */
+.status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--gutter);
+  text-align: center;
+}
+
+.status h2 {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.status__text {
+  color: var(--ink-2);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.status__icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.status__icon[data-tone='bad'] {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.status__icon[data-tone='wait'] {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.status__details {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: var(--space-2) 0 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  text-align: left;
+}
+
+.status__details div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3);
+}
+
+.status__details div + div {
+  border-top: 1px solid var(--line);
+}
+
+.status__details dt {
+  flex: none;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.status__details dd {
+  min-width: 0;
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.status__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+.status__actions .button--primary {
+  flex: none;
+}
