@@ -36,7 +36,7 @@ The store sells a single product, seeded by a database migration. Each purchase 
 | Web: card and delivery form | Done |
 | Web: card tokenization and payment summary | Done |
 | Web: payment and final status | Done |
-| Web: progress recovery after a refresh | Pending |
+| Web: progress recovery after a refresh | Done |
 | AWS deployment | Pending |
 
 ## Deployed app
@@ -152,6 +152,24 @@ The form helps the customer type the card correctly before anything is sent. The
 
 The rules live in `web/src/lib/card.ts`.
 
+## Recovering progress after a refresh
+
+The checkout keeps a small snapshot in `localStorage`, so a refresh does not send the customer back to the start.
+
+| Refresh on | The app comes back to |
+|---|---|
+| Product page | The product, with the chosen units |
+| Card and delivery form | The form, with the contact and delivery details; the card is typed again |
+| Summary | The form, because the card token is never saved |
+| Final status | The final status, asked to the API again |
+
+- The snapshot holds the step, the product, the units, the contact and delivery details and the id of a payment already sent. It never holds the card, its token or anything the gateway answered.
+- It expires after 30 minutes and is removed when the purchase ends.
+- Storage can be edited by hand, so every field is validated when it is read; anything unexpected discards the whole snapshot.
+- If the API does not know the saved payment, the request never arrived: the app says the card was not charged and lets the customer start again.
+
+The rules live in `web/src/store/persistence.ts`.
+
 ## Test coverage
 
 Every pull request runs lint, build and tests for `api/` and `web/` in GitHub Actions. The run fails if coverage drops below 80% in statements, branches, functions or lines.
@@ -162,7 +180,7 @@ Results on 2026-11-15:
 |---|---|---|---|---|---|
 | `api/` (unit) | 327 | 99.15% | 92.18% | 98.34% | 99.15% |
 | `api/` (end-to-end, real PostgreSQL) | 22 | – | – | – | – |
-| `web/` (unit) | 248 | 100% | 99.6% | 100% | 100% |
+| `web/` (unit) | 291 | 100% | 99.06% | 100% | 100% |
 
 To reproduce them, run `npm run test:cov` inside `api/` and inside `web/`.
 
