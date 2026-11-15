@@ -33,6 +33,15 @@ describe('buildTypeOrmOptions', () => {
     });
   });
 
+  it('runs pending migrations when the app starts', () => {
+    const options = buildTypeOrmOptions(configWith());
+
+    expect(options).toMatchObject({ migrationsRun: true });
+    expect(options.migrations).toEqual([
+      expect.stringMatching(/migrations[\\/]\*\{\.ts,\.js\}$/),
+    ]);
+  });
+
   it('disables TLS when DB_SSL is false', () => {
     expect(buildTypeOrmOptions(configWith())).toMatchObject({ ssl: false });
   });

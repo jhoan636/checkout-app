@@ -73,7 +73,11 @@
       "**/*.ts",
       "!**/*.spec.ts",
       "!**/*.module.ts",
-      "!main.ts"
+      "!main.ts",
+      "!**/migrations/*.ts",
+      "!**/*.orm-entity.ts",
+      "!**/index.ts",
+      "!**/ports/*.ts"
     ],
     "coverageProvider": "v8",
     "coverageThreshold": {
