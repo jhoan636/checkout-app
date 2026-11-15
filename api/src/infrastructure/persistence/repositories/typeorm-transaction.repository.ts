@@ -82,6 +82,13 @@ export class TypeOrmTransactionRepository implements TransactionRepository {
     return row ? toDomain(row) : null;
   }
 
+  async findByReference(reference: string): Promise<Transaction | null> {
+    const row = await this.dataSource
+      .getRepository(TransactionOrmEntity)
+      .findOneBy({ reference });
+    return row ? toDomain(row) : null;
+  }
+
   async assignGatewayId(
     id: string,
     gatewayTransactionId: string,

@@ -22,6 +22,7 @@ import {
 import { TransactionSettlement } from '../../application/services/transaction-settlement';
 import { CreateTransactionUseCase } from '../../application/use-cases/create-transaction.use-case';
 import { GetTransactionUseCase } from '../../application/use-cases/get-transaction.use-case';
+import { HandleGatewayEventUseCase } from '../../application/use-cases/handle-gateway-event.use-case';
 import { Fees } from '../../domain/payment/payment-summary';
 import { Env } from '../config/env.validation';
 import { GatewayModule } from '../gateway/gateway.module';
@@ -92,10 +93,19 @@ import { SystemClock, UuidGenerator } from '../system/system-adapters';
         settlement: TransactionSettlement,
       ) => new GetTransactionUseCase(transactions, gateway, settlement),
     },
+    {
+      provide: HandleGatewayEventUseCase,
+      inject: [TRANSACTION_REPOSITORY, TransactionSettlement],
+      useFactory: (
+        transactions: TransactionRepository,
+        settlement: TransactionSettlement,
+      ) => new HandleGatewayEventUseCase(transactions, settlement),
+    },
   ],
   exports: [
     CreateTransactionUseCase,
     GetTransactionUseCase,
+    HandleGatewayEventUseCase,
     TransactionSettlement,
   ],
 })

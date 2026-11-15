@@ -137,6 +137,29 @@ describe('TypeOrmTransactionRepository', () => {
     });
   });
 
+  describe('findByReference', () => {
+    it('maps the row found by its unique reference', async () => {
+      const { repository, ormRepository } = setup();
+      ormRepository.findOneBy.mockResolvedValue(
+        Object.assign(new TransactionOrmEntity(), approved),
+      );
+
+      await expect(
+        repository.findByReference(approved.reference),
+      ).resolves.toEqual(approved);
+      expect(ormRepository.findOneBy).toHaveBeenCalledWith({
+        reference: approved.reference,
+      });
+    });
+
+    it('returns null when no transaction has that reference', async () => {
+      const { repository, ormRepository } = setup();
+      ormRepository.findOneBy.mockResolvedValue(null);
+
+      await expect(repository.findByReference('ORDER-x')).resolves.toBeNull();
+    });
+  });
+
   describe('assignGatewayId', () => {
     it('only touches a transaction that is still PENDING', async () => {
       const { repository, ormRepository } = setup();

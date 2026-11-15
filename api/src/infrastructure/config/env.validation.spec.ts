@@ -11,6 +11,7 @@ const validEnv = {
   GATEWAY_BASE_URL: 'https://gateway.test/v1',
   GATEWAY_PRIVATE_KEY: 'prv_test_key',
   GATEWAY_INTEGRITY_SECRET: 'integrity_secret',
+  GATEWAY_EVENTS_SECRET: 'events_secret',
   GATEWAY_TIMEOUT_MS: '8000',
   BASE_FEE_IN_CENTS: '250000',
   DELIVERY_FEE_IN_CENTS: '900000',
@@ -29,6 +30,7 @@ describe('validateEnv', () => {
       GATEWAY_BASE_URL: 'https://gateway.test/v1',
       GATEWAY_PRIVATE_KEY: 'prv_test_key',
       GATEWAY_INTEGRITY_SECRET: 'integrity_secret',
+      GATEWAY_EVENTS_SECRET: 'events_secret',
       GATEWAY_TIMEOUT_MS: 8000,
       BASE_FEE_IN_CENTS: 250_000,
       DELIVERY_FEE_IN_CENTS: 900_000,
@@ -54,6 +56,7 @@ describe('validateEnv', () => {
     'GATEWAY_BASE_URL',
     'GATEWAY_PRIVATE_KEY',
     'GATEWAY_INTEGRITY_SECRET',
+    'GATEWAY_EVENTS_SECRET',
   ])('fails when %s is missing', (name) => {
     expect(() => validateEnv({ ...validEnv, [name]: undefined })).toThrow(name);
   });
