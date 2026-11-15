@@ -9,7 +9,7 @@ const headphones: Product = {
   description: 'Over-ear headphones',
   priceInCents: 45_990_000,
   stock: 12,
-  imageUrl: '/products/aurora-headphones.svg',
+  imageUrl: '/products/aurora-headphones.webp',
 }
 
 const apiWith = (getProducts: CheckoutApi['getProducts']) =>
