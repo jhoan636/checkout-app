@@ -24,7 +24,7 @@ Each app is independent: its own `package.json`, tests and deployment.
 4. **Final status**: result of the payment.
 5. **Back to the product page** with the updated stock.
 
-The database is seeded with four dummy products. The app opens on the page of one product; the others are listed below it and can be shown in its place. Each purchase is for one product and one or more of its units: there is no cart, so a transaction always refers to a single product.
+The database is seeded with four dummy products and the API lists them all. The app shows one: the first product with units in stock. Each purchase is for that product and one or more of its units; there is no cart, so a transaction always refers to a single product.
 
 ## Progress
 
