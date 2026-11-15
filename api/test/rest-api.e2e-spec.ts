@@ -10,7 +10,7 @@ import { FakePaymentGateway } from './../src/application/testing/in-memory.fake'
 import { ok } from './../src/domain/shared/result';
 import { configureApp } from './../src/infrastructure/http/configure-app';
 
-const PRODUCT_ID = 'a3f1c2d4-5b6e-4f70-8a91-b2c3d4e5f602';
+const PRODUCT_ID = 'a3f1c2d4-5b6e-4f70-8a91-b2c3d4e5f601';
 const EMAIL = 'e2e-rest@example.com';
 
 interface TransactionBody {
@@ -93,10 +93,10 @@ describe('REST API (e2e)', () => {
   });
 
   describe('products', () => {
-    it('GET /products lists the seeded catalogue', async () => {
+    it('GET /products lists the seeded product', async () => {
       const response = await http().get('/products').expect(200);
 
-      expect((response.body as ProductBody[]).length).toBeGreaterThanOrEqual(4);
+      expect(response.body as ProductBody[]).toHaveLength(1);
     });
 
     it('GET /products/:id answers 404 for an unknown product', async () => {
@@ -115,10 +115,10 @@ describe('REST API (e2e)', () => {
       expect(response.body).toEqual({
         productId: PRODUCT_ID,
         quantity: 2,
-        subtotalInCents: 77_900_000,
+        subtotalInCents: 91_980_000,
         baseFeeInCents: 300_000,
         deliveryFeeInCents: 1_200_000,
-        totalInCents: 79_400_000,
+        totalInCents: 93_480_000,
       });
     });
 
@@ -147,7 +147,7 @@ describe('REST API (e2e)', () => {
       expect(created.body as TransactionBody).toMatchObject({
         id: key,
         status: 'APPROVED',
-        amountInCents: 38_950_000 + 300_000 + 1_200_000,
+        amountInCents: 45_990_000 + 300_000 + 1_200_000,
       });
       expect(created.body).not.toHaveProperty('gatewayTransactionId');
       expect(await stock()).toBe(initialStock - 1);
@@ -219,13 +219,25 @@ describe('REST API (e2e)', () => {
     });
 
     it('answers 409 when asking for more units than there are', async () => {
-      const response = await http()
-        .post('/transactions')
-        .set('Idempotency-Key', randomUUID())
-        .send(purchase({ quantity: 10 }))
-        .expect(409);
+      const setStock = (units: number) =>
+        dataSource.query('UPDATE products SET stock = $1 WHERE id = $2', [
+          units,
+          PRODUCT_ID,
+        ]);
+      const before = await stock();
+      await setStock(3);
 
-      expect(response.body).toMatchObject({ error: 'INSUFFICIENT_STOCK' });
+      try {
+        const response = await http()
+          .post('/transactions')
+          .set('Idempotency-Key', randomUUID())
+          .send(purchase({ quantity: 4 }))
+          .expect(409);
+
+        expect(response.body).toMatchObject({ error: 'INSUFFICIENT_STOCK' });
+      } finally {
+        await setStock(before);
+      }
     });
 
     it('GET /transactions/:id answers 404 for an unknown transaction', async () => {

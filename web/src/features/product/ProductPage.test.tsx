@@ -2,7 +2,7 @@ import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Product } from '../../api/types'
 import { initialCheckoutState } from '../../store/checkout.slice'
-import { headphones, keyboard, readyProducts, renderWithStore } from '../../test/render'
+import { headphones, readyProducts, renderWithStore } from '../../test/render'
 import { ProductPage } from './ProductPage'
 
 const renderProduct = (
@@ -14,7 +14,7 @@ const renderProduct = (
 ) =>
   renderWithStore(<ProductPage />, {
     state: {
-      products: readyProducts(options.items ?? [headphones, keyboard]),
+      products: readyProducts(options.items ?? [headphones]),
       checkout: {
         ...initialCheckoutState,
         productId: options.productId ?? null,
@@ -25,6 +25,9 @@ const renderProduct = (
 
 const payButton = () =>
   screen.getByRole('button', { name: 'Pay with credit card' })
+/** The same product with only three units left. */
+const fewLeft: Product = { ...headphones, stock: 3 }
+
 const title = (name: string) => screen.getByRole('heading', { level: 2, name })
 
 describe('ProductPage', () => {
@@ -63,36 +66,27 @@ describe('ProductPage', () => {
     })
 
     it('warns when only a few units are left', () => {
-      renderProduct({ productId: keyboard.id })
+      renderProduct({ items: [fewLeft] })
 
       expect(screen.getByText('3 in stock')).toHaveAttribute('data-level', 'low')
     })
   })
 
-  describe('which product is shown', () => {
-    it('starts with the first product that can be bought', () => {
-      const { store } = renderProduct({
-        items: [{ ...headphones, stock: 0 }, keyboard],
-      })
+  describe('the checkout state', () => {
+    it('records which product is being bought', () => {
+      const { store } = renderProduct()
 
-      expect(title('Nimbus Mechanical Keyboard')).toBeInTheDocument()
-      expect(store.getState().checkout.productId).toBe(keyboard.id)
-    })
-
-    it('keeps the product that was already chosen', () => {
-      renderProduct({ productId: keyboard.id })
-
-      expect(title('Nimbus Mechanical Keyboard')).toBeInTheDocument()
-    })
-
-    it('falls back to the first one when the chosen product no longer exists', () => {
-      const { store } = renderProduct({ productId: 'gone' })
-
-      expect(title('Aurora Wireless Headphones')).toBeInTheDocument()
       expect(store.getState().checkout.productId).toBe(headphones.id)
     })
 
-    it('shows nothing when the store is empty', () => {
+    it('keeps the units already chosen for the same product', () => {
+      const { store } = renderProduct({ productId: headphones.id, quantity: 4 })
+
+      expect(store.getState().checkout.quantity).toBe(4)
+      expect(screen.getByLabelText('Quantity')).toHaveTextContent('4')
+    })
+
+    it('shows nothing when the store has no product', () => {
       renderProduct({ items: [] })
 
       expect(screen.queryByRole('heading')).toBeNull()
@@ -123,7 +117,7 @@ describe('ProductPage', () => {
 
     it('cannot go above the units in stock', async () => {
       const user = userEvent.setup()
-      renderProduct({ productId: keyboard.id, quantity: 3 })
+      renderProduct({ items: [fewLeft], productId: fewLeft.id, quantity: 3 })
 
       expect(screen.getByRole('button', { name: 'Add one unit' })).toBeDisabled()
       await user.click(screen.getByRole('button', { name: 'Add one unit' }))
@@ -132,10 +126,10 @@ describe('ProductPage', () => {
 
     it('never shows more units than the stock allows', () => {
       // Stock can drop between the moment the units were chosen and now.
-      renderProduct({ productId: keyboard.id, quantity: 8 })
+      renderProduct({ items: [fewLeft], productId: fewLeft.id, quantity: 8 })
 
       expect(screen.getByLabelText('Quantity')).toHaveTextContent('3')
-      expect(screen.getByTestId('total')).toHaveTextContent('$1.168.500')
+      expect(screen.getByTestId('total')).toHaveTextContent('$1.379.700')
     })
   })
 

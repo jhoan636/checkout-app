@@ -16,7 +16,7 @@ export type ProductNotFound = 'PRODUCT_NOT_FOUND';
 
 export type QuoteError = ProductNotFound | StockError | PaymentSummaryError;
 
-/** Read-only questions about the catalogue. */
+/** Read-only questions about the products of the store. */
 export class ProductQueries {
   constructor(
     private readonly products: ProductRepository,

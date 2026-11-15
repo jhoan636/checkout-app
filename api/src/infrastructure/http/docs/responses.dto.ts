@@ -24,7 +24,7 @@ export class ProductResponse {
   @ApiProperty({ description: 'Units available right now.', example: 12 })
   stock!: number;
 
-  @ApiProperty({ example: '/products/aurora-headphones.svg' })
+  @ApiProperty({ example: '/products/aurora-headphones.webp' })
   imageUrl!: string;
 }
 

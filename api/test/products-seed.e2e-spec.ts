@@ -25,26 +25,14 @@ describe('Seeded products (e2e)', () => {
     await app.close();
   });
 
-  it('the catalogue is available after the migrations run', async () => {
+  it('the product is available after the migrations run', async () => {
     const all = await products.findAll();
 
-    expect(all.map((product) => product.name)).toEqual(
-      expect.arrayContaining([
-        'Aurora Wireless Headphones',
-        'Nimbus Mechanical Keyboard',
-        'Orbit Portable Speaker',
-        'Pulse Smart Watch',
-      ]),
-    );
-  });
-
-  it('points every product to its compressed photo', async () => {
-    const all = await products.findAll();
-
-    expect(all.length).toBeGreaterThan(0);
-    for (const product of all) {
-      expect(product.imageUrl).toMatch(/^\/products\/[a-z-]+\.webp$/);
-    }
+    expect(all).toHaveLength(1);
+    expect(all[0]).toMatchObject({
+      name: 'Aurora Wireless Headphones',
+      imageUrl: '/products/aurora-headphones.webp',
+    });
   });
 
   it('reads prices as integer cents and stock as a number', async () => {

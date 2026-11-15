@@ -21,7 +21,7 @@ export const buildApiDocument = (app: INestApplication): OpenAPIObject =>
       .setTitle('Product Checkout API')
       .setDescription(DESCRIPTION)
       .setVersion('1.0')
-      .addTag('products', 'Catalogue, stock and payment summary')
+      .addTag('products', 'Product, stock and payment summary')
       .addTag('transactions', 'Purchases, with their customer and delivery')
       .addTag('webhooks', 'Notifications sent by the payment gateway')
       .addTag('health')

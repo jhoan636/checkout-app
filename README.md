@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/jhoan636/checkout-app/actions/workflows/ci.yml/badge.svg)](https://github.com/jhoan636/checkout-app/actions/workflows/ci.yml)
 
-A small store with a credit card checkout. The customer picks a product, enters card and delivery data, reviews a payment summary, pays through an external payment gateway (sandbox) and gets the final status. Stock is updated once the payment is resolved.
+A store that sells one product with a credit card checkout. The customer sees the product and its stock, enters card and delivery data, reviews a payment summary, pays through an external payment gateway (sandbox) and gets the final status. Stock is updated once the payment is resolved.
 
 > Work in progress. The API is complete. The web app has the first two screens; the status of every part is listed in [Progress](#progress).
 
@@ -24,7 +24,7 @@ Each app is independent: its own `package.json`, tests and deployment.
 4. **Final status**: result of the payment.
 5. **Back to the product page** with the updated stock.
 
-The database is seeded with four dummy products and the API lists them all. The app shows one: the first product with units in stock. Each purchase is for that product and one or more of its units; there is no cart, so a transaction always refers to a single product.
+The store sells a single product, seeded by a database migration. Each purchase is for that product and one or more of its units; there is no cart.
 
 ## Progress
 
@@ -50,7 +50,7 @@ Swagger UI is served by the API at `/docs` and the OpenAPI document at `/docs-js
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/health` | Liveness check |
-| `GET` | `/products` | Catalogue with current stock |
+| `GET` | `/products` | The product of the store with its current stock |
 | `GET` | `/products/:id` | One product |
 | `GET` | `/products/:id/payment-summary?quantity=` | Amounts to pay: subtotal, base fee, delivery fee and total |
 | `POST` | `/transactions` | Creates the transaction as `PENDING` and asks the gateway to charge it. Requires an `Idempotency-Key` header (UUID) |
@@ -59,7 +59,7 @@ Swagger UI is served by the API at `/docs` and the OpenAPI document at `/docs-js
 | `GET` | `/transactions/:id/delivery` | Delivery of the transaction |
 | `POST` | `/webhooks/payment-gateway` | Payment result sent by the gateway; rejected with `401` if its signature is wrong |
 
-There is no endpoint to create products: the catalogue is seeded by a database migration.
+There is no endpoint to create products: the product is seeded by a database migration.
 
 ## Architecture
 
@@ -161,8 +161,8 @@ Results on 2026-11-15:
 | App | Tests | Statements | Branches | Functions | Lines |
 |---|---|---|---|---|---|
 | `api/` (unit) | 327 | 99.15% | 92.18% | 98.34% | 99.15% |
-| `api/` (end-to-end, real PostgreSQL) | 23 | – | – | – | – |
-| `web/` (unit) | 145 | 100% | 98.57% | 100% | 100% |
+| `api/` (end-to-end, real PostgreSQL) | 22 | – | – | – | – |
+| `web/` (unit) | 147 | 100% | 99.25% | 100% | 100% |
 
 To reproduce them, run `npm run test:cov` inside `api/` and inside `web/`.
 
@@ -225,5 +225,5 @@ The API must be running, and its `CORS_ORIGINS` must include the web origin (the
 ## Credits
 
 - Visual direction inspired by "A Checkout Flow" by Banu Elmas (Figma Community, CC BY 4.0). No screens or assets were copied.
-- Product photos from [Unsplash](https://unsplash.com), under the Unsplash License.
+- Product photo from [Unsplash](https://unsplash.com), under the Unsplash License.
 - Brand marks in the card form are simplified drawings used only to identify the card type.

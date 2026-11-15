@@ -24,7 +24,7 @@ const product: Product = {
   description: 'Over-ear headphones',
   priceInCents: 45_990_000,
   stock: 3,
-  imageUrl: '/products/aurora-headphones.svg',
+  imageUrl: '/products/aurora-headphones.webp',
 };
 
 const command: CreateTransactionCommand = {
