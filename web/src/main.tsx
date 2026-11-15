@@ -4,6 +4,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'
 import { createCheckoutApi } from './api/checkout-api'
+import { createPaymentGateway } from './api/gateway'
 import { createHttp } from './api/http'
 import App from './App.tsx'
 import { config } from './config'
@@ -12,7 +13,10 @@ import './styles/tokens.css'
 import './styles/base.css'
 import './styles/components.css'
 
-const store = createAppStore(createCheckoutApi(createHttp(config.apiUrl)))
+const store = createAppStore({
+  api: createCheckoutApi(createHttp(config.apiUrl)),
+  gateway: createPaymentGateway(config.gatewayUrl, config.gatewayPublicKey),
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

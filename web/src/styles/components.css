@@ -1,4 +1,17 @@
 /* Pieces shared by every screen. */
+
+/* The page behind does not scroll while a dialog is open. */
+html:has(dialog[open]) {
+  overflow: hidden;
+}
+
+.brand {
+  width: 44px;
+  height: 28px;
+  flex: none;
+  border-radius: 4px;
+}
+
 .button {
   display: inline-flex;
   align-items: center;

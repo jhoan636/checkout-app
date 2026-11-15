@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import type { CheckoutApi } from '../api/checkout-api'
 import type { Product } from '../api/types'
+import type { Services } from './services'
 
 export interface ProductsState {
   items: Product[]
@@ -15,9 +15,9 @@ const initialState: ProductsState = { items: [], status: 'idle', error: null }
 export const loadProducts = createAsyncThunk<
   Product[],
   void,
-  { extra: CheckoutApi; rejectValue: string }
->('products/load', async (_, { extra: api, rejectWithValue }) => {
-  const result = await api.getProducts()
+  { extra: Services; rejectValue: string }
+>('products/load', async (_, { extra, rejectWithValue }) => {
+  const result = await extra.api.getProducts()
   return result.ok ? result.data : rejectWithValue(result.error.message)
 })
 

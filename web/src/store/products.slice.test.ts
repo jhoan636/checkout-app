@@ -1,4 +1,5 @@
 import type { CheckoutApi } from '../api/checkout-api'
+import type { PaymentGateway } from '../api/gateway'
 import type { Product } from '../api/types'
 import { loadProducts, selectProductById, stockChanged } from './products.slice'
 import { createAppStore } from './store'
@@ -15,9 +16,12 @@ const headphones: Product = {
 const apiWith = (getProducts: CheckoutApi['getProducts']) =>
   ({ getProducts }) as CheckoutApi
 
+const storeWith = (api: CheckoutApi) =>
+  createAppStore({ api, gateway: {} as PaymentGateway })
+
 describe('products slice', () => {
   it('starts empty and idle', () => {
-    const store = createAppStore(apiWith(jest.fn()))
+    const store = storeWith(apiWith(jest.fn()))
 
     expect(store.getState().products).toEqual({
       items: [],
@@ -27,7 +31,7 @@ describe('products slice', () => {
   })
 
   it('is loading while the products are requested', () => {
-    const store = createAppStore(
+    const store = storeWith(
       apiWith(() => new Promise(() => undefined)),
     )
 
@@ -37,7 +41,7 @@ describe('products slice', () => {
   })
 
   it('stores the products when the API answers', async () => {
-    const store = createAppStore(
+    const store = storeWith(
       apiWith(() => Promise.resolve({ ok: true, data: [headphones] })),
     )
 
@@ -51,7 +55,7 @@ describe('products slice', () => {
   })
 
   it('keeps the error message when the API fails', async () => {
-    const store = createAppStore(
+    const store = storeWith(
       apiWith(() =>
         Promise.resolve({
           ok: false,
@@ -81,7 +85,7 @@ describe('products slice', () => {
         error: { status: 0, code: 'NETWORK_ERROR', message: 'Offline' },
       })
       .mockResolvedValueOnce({ ok: true, data: [headphones] })
-    const store = createAppStore(apiWith(getProducts))
+    const store = storeWith(apiWith(getProducts))
 
     await store.dispatch(loadProducts())
     await store.dispatch(loadProducts())
@@ -93,7 +97,7 @@ describe('products slice', () => {
   })
 
   it('selects a product by id', async () => {
-    const store = createAppStore(
+    const store = storeWith(
       apiWith(() => Promise.resolve({ ok: true, data: [headphones] })),
     )
     await store.dispatch(loadProducts())
@@ -103,7 +107,7 @@ describe('products slice', () => {
   })
 
   it('updates the stock of one product after a purchase', async () => {
-    const store = createAppStore(
+    const store = storeWith(
       apiWith(() => Promise.resolve({ ok: true, data: [headphones] })),
     )
     await store.dispatch(loadProducts())
@@ -114,7 +118,7 @@ describe('products slice', () => {
   })
 
   it('ignores a stock change for a product it does not have', async () => {
-    const store = createAppStore(
+    const store = storeWith(
       apiWith(() => Promise.resolve({ ok: true, data: [headphones] })),
     )
     await store.dispatch(loadProducts())
@@ -125,7 +129,7 @@ describe('products slice', () => {
   })
 
   it('shows a general message when loading fails unexpectedly', async () => {
-    const store = createAppStore(
+    const store = storeWith(
       apiWith(() => Promise.reject(new Error('boom'))),
     )
 

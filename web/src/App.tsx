@@ -1,6 +1,7 @@
 import { DetailsModal } from './features/details/DetailsModal'
 import { ProductPage } from './features/product/ProductPage'
 import { ProductsGate } from './features/product/ProductsGate'
+import { SummaryBackdrop } from './features/summary/SummaryBackdrop'
 import { useAppSelector } from './store/hooks'
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
         <ProductsGate>
           <ProductPage />
           {step === 'details' && <DetailsModal />}
+          {step === 'summary' && <SummaryBackdrop />}
         </ProductsGate>
       </main>
     </div>
