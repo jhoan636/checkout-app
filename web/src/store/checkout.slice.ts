@@ -62,13 +62,15 @@ const checkoutSlice = createSlice({
   name: 'checkout',
   initialState: initialCheckoutState,
   reducers: {
-    /** The product page shows another product, starting again at one unit. */
+    /**
+     * The product on sale is not the one this checkout was about (first
+     * visit, or progress saved for a product that is gone): start over with it.
+     */
     productSelected(state, action: PayloadAction<string>) {
-      if (state.step !== 'product') {
-        return
+      if (state.step === 'status') {
+        return state
       }
-      state.productId = action.payload
-      state.quantity = 1
+      return { ...initialCheckoutState, productId: action.payload }
     },
     quantityChanged(state, action: PayloadAction<number>) {
       state.quantity = clampQuantity(action.payload)
