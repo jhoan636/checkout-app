@@ -1,5 +1,6 @@
 import { DetailsModal } from './features/details/DetailsModal'
 import { ProductPage } from './features/product/ProductPage'
+import { ProductsGate } from './features/product/ProductsGate'
 import { useAppSelector } from './store/hooks'
 
 function App() {
@@ -23,8 +24,10 @@ function App() {
       </header>
       <main className="app__main">
         <h1 className="visually-hidden">Product Checkout</h1>
-        <ProductPage />
-        {step === 'details' && <DetailsModal />}
+        <ProductsGate>
+          <ProductPage />
+          {step === 'details' && <DetailsModal />}
+        </ProductsGate>
       </main>
     </div>
   )

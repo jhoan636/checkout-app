@@ -4,6 +4,7 @@ import { detectBrand, digitsOnly, formatCardNumber, formatExpiry } from '../../l
 import type { CardBrand } from '../../lib/card'
 import { detailsClosed, detailsSubmitted } from '../../store/checkout.slice'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
+import { selectProductById } from '../../store/products.slice'
 import { emptyDetails, toPurchaseDetails, validateDetails } from './validation'
 import type { DetailsField, DetailsValues } from './validation'
 import './details.css'
@@ -115,7 +116,7 @@ export function DetailsModal({ now }: { now?: Date }) {
     (state) => state.checkout,
   )
   const product = useAppSelector((state) =>
-    state.products.items.find((item) => item.id === productId),
+    selectProductById(state, productId),
   )
 
   // The card lives only here, in memory, while the form is open.

@@ -3,6 +3,7 @@ import type { ReactElement, ReactNode } from 'react'
 import { Provider } from 'react-redux'
 import type { CheckoutApi } from '../api/checkout-api'
 import type { Product } from '../api/types'
+import type { ProductsState } from '../store/products.slice'
 import { createAppStore } from '../store/store'
 import type { RootState } from '../store/store'
 
@@ -23,6 +24,11 @@ export const keyboard: Product = {
   stock: 3,
   imageUrl: '/products/nimbus-keyboard.webp',
 }
+
+/** Products already loaded, for screens that start after the catalogue. */
+export const readyProducts = (
+  items: Product[] = [headphones, keyboard],
+): ProductsState => ({ items, status: 'ready', error: null })
 
 /** A fake API: every call answers from memory unless a test overrides it. */
 export const fakeApi = (overrides: Partial<CheckoutApi> = {}): CheckoutApi => ({

@@ -51,7 +51,11 @@ const checkoutSlice = createSlice({
   name: 'checkout',
   initialState: initialCheckoutState,
   reducers: {
+    /** The product page shows another product, starting again at one unit. */
     productSelected(state, action: PayloadAction<string>) {
+      if (state.step !== 'product') {
+        return
+      }
       state.productId = action.payload
       state.quantity = 1
     },
@@ -59,7 +63,7 @@ const checkoutSlice = createSlice({
       state.quantity = clampQuantity(action.payload)
     },
     checkoutStarted(state) {
-      if (state.productId) {
+      if (state.step === 'product' && state.productId) {
         state.step = 'details'
       }
     },

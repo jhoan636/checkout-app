@@ -54,5 +54,5 @@ export const productsReducer = productsSlice.reducer
 
 export const selectProductById = (
   state: { products: ProductsState },
-  id: string,
+  id: string | null,
 ): Product | undefined => state.products.items.find((item) => item.id === id)

@@ -27,7 +27,7 @@ const details: PurchaseDetails = {
 }
 
 describe('checkout slice', () => {
-  it('starts on the product step with one unit', () => {
+  it('starts on the product page with one unit', () => {
     expect(checkoutReducer(undefined, { type: 'init' })).toEqual({
       step: 'product',
       productId: null,
@@ -38,7 +38,7 @@ describe('checkout slice', () => {
     })
   })
 
-  it('selects a product and goes back to one unit', () => {
+  it('shows another product and goes back to one unit', () => {
     const state = checkoutReducer(
       { ...initial, productId: 'prod-1', quantity: 4 },
       productSelected('prod-2'),
@@ -49,6 +49,12 @@ describe('checkout slice', () => {
       productId: 'prod-2',
       quantity: 1,
     })
+  })
+
+  it('does not change the product in the middle of a payment', () => {
+    const paying = { ...initial, step: 'details' as const, productId: 'prod-1' }
+
+    expect(checkoutReducer(paying, productSelected('prod-2'))).toEqual(paying)
   })
 
   it('changes the quantity', () => {
@@ -76,6 +82,12 @@ describe('checkout slice', () => {
 
   it('does not start a checkout without a product', () => {
     expect(checkoutReducer(initial, checkoutStarted()).step).toBe('product')
+  })
+
+  it('does not start a second checkout over the first one', () => {
+    const onSummary = { ...initial, step: 'summary' as const, productId: 'prod-1' }
+
+    expect(checkoutReducer(onSummary, checkoutStarted()).step).toBe('summary')
   })
 
   describe('details', () => {
