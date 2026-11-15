@@ -1,0 +1,78 @@
+/*
+ * Design tokens. Every colour, radius and shadow in the app comes from here.
+ * The base is white and black; the only strong colour is the product's own
+ * tint, which components receive through --tint and --tint-deep.
+ */
+:root {
+  color-scheme: light;
+
+  --bg: #fbfbfa;
+  --surface: #ffffff;
+  --fill: #f1f1f3;
+  --ink: #141416;
+  --ink-2: #6b6b76;
+  --line: #e6e6ea;
+  --on-ink: #ffffff;
+
+  --tint: #ffd9c4;
+  --tint-deep: #ff6a2b;
+
+  --ok: #12a150;
+  --ok-soft: #dff6e8;
+  --bad: #d92d20;
+  --bad-soft: #fde7e4;
+
+  --card-a: #1b1b22;
+  --card-b: #3a2a26;
+  --scrim: rgb(10 10 14 / 0.42);
+  --shadow-rgb: 20 20 30;
+
+  --font-ui: 'Geist Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-brand: 'Unbounded', 'Geist Variable', sans-serif;
+
+  --radius-s: 14px;
+  --radius-m: 20px;
+  --radius-l: 30px;
+  --radius-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 28px;
+
+  --shadow-float: 0 16px 28px -16px rgb(var(--shadow-rgb) / 0.45);
+  --shadow-sheet: 0 -20px 40px -20px rgb(var(--shadow-rgb) / 0.35);
+
+  /* Smallest supported screen: iPhone SE, 375 CSS pixels wide. */
+  --page-max: 1080px;
+  --gutter: 20px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --bg: #121215;
+    --surface: #1b1b20;
+    --fill: #26262d;
+    --ink: #f5f5f7;
+    --ink-2: #a0a0ad;
+    --line: #2c2c34;
+    --on-ink: #141416;
+
+    --tint: #5a3220;
+    --tint-deep: #ff8a52;
+
+    --ok: #3ddc84;
+    --ok-soft: #143524;
+    --bad: #ff7a6e;
+    --bad-soft: #3b1b18;
+
+    --card-a: #0c0c10;
+    --card-b: #3a2018;
+    --scrim: rgb(0 0 0 / 0.6);
+    --shadow-rgb: 0 0 0;
+  }
+}
