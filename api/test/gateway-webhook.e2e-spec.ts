@@ -6,6 +6,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import { AppModule } from './../src/app.module';
+import { configureApp } from './../src/infrastructure/http/configure-app';
 import {
   PRODUCT_REPOSITORY,
   ProductRepository,
@@ -105,6 +106,7 @@ describe('Gateway webhook (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    configureApp(app);
     await app.init();
     dataSource = app.get(DataSource);
     products = app.get<ProductRepository>(PRODUCT_REPOSITORY);

@@ -15,6 +15,8 @@ const validEnv = {
   GATEWAY_TIMEOUT_MS: '8000',
   BASE_FEE_IN_CENTS: '250000',
   DELIVERY_FEE_IN_CENTS: '900000',
+  CORS_ORIGINS: 'https://shop.example.com, http://localhost:5173',
+  RATE_LIMIT_PER_MINUTE: '60',
 };
 
 describe('validateEnv', () => {
@@ -34,6 +36,8 @@ describe('validateEnv', () => {
       GATEWAY_TIMEOUT_MS: 8000,
       BASE_FEE_IN_CENTS: 250_000,
       DELIVERY_FEE_IN_CENTS: 900_000,
+      CORS_ORIGINS: ['https://shop.example.com', 'http://localhost:5173'],
+      RATE_LIMIT_PER_MINUTE: 60,
     });
   });
 
@@ -154,4 +158,31 @@ describe('validateEnv', () => {
       expect(() => validateEnv({ ...validEnv, [name]: '10.5' })).toThrow(name);
     },
   );
+
+  it('allows only the local web app by default', () => {
+    const env = { ...validEnv, CORS_ORIGINS: undefined };
+
+    expect(validateEnv(env).CORS_ORIGINS).toEqual(['http://localhost:5173']);
+  });
+
+  it.each(['*', 'shop.example.com', 'https://shop.example.com/path', ' , '])(
+    'fails when CORS_ORIGINS is not a list of exact origins (%s)',
+    (value) => {
+      expect(() => validateEnv({ ...validEnv, CORS_ORIGINS: value })).toThrow(
+        'CORS_ORIGINS',
+      );
+    },
+  );
+
+  it('uses a default rate limit of 120 requests per minute', () => {
+    const env = { ...validEnv, RATE_LIMIT_PER_MINUTE: undefined };
+
+    expect(validateEnv(env).RATE_LIMIT_PER_MINUTE).toBe(120);
+  });
+
+  it('fails when the rate limit is not a positive whole number', () => {
+    expect(() =>
+      validateEnv({ ...validEnv, RATE_LIMIT_PER_MINUTE: '0' }),
+    ).toThrow('RATE_LIMIT_PER_MINUTE');
+  });
 });

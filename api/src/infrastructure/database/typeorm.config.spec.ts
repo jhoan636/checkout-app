@@ -17,6 +17,8 @@ const env: Env = {
   GATEWAY_TIMEOUT_MS: 10_000,
   BASE_FEE_IN_CENTS: 300_000,
   DELIVERY_FEE_IN_CENTS: 1_200_000,
+  CORS_ORIGINS: ['http://localhost:5173'],
+  RATE_LIMIT_PER_MINUTE: 120,
 };
 
 const configWith = (overrides: Partial<Env> = {}) =>
