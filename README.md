@@ -1,5 +1,7 @@
 # Product Checkout
 
+[![CI](https://github.com/jhoan636/checkout-app/actions/workflows/ci.yml/badge.svg)](https://github.com/jhoan636/checkout-app/actions/workflows/ci.yml)
+
 Single-product store with a credit card checkout. The customer sees the product and its stock, enters card and delivery data, reviews a payment summary, pays through an external payment gateway (sandbox) and gets the final status. Stock is updated once the payment is resolved.
 
 > Work in progress. Sections marked _TBD_ are completed as each feature lands.
@@ -36,7 +38,9 @@ _TBD_
 
 ## Test coverage
 
-_TBD_
+Every pull request runs lint, build and unit tests for `api/` and `web/` in GitHub Actions. The run fails if coverage drops below 80% in statements, branches, functions or lines.
+
+Coverage results: _TBD_
 
 ## Running locally
 
