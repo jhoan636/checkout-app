@@ -14,6 +14,9 @@ const input: NewTransaction = {
   reference: 'ORDER-0001',
   productId: 'prod-1',
   quantity: 2,
+  unitPriceInCents: 25_000_000,
+  baseFeeInCents: 200_000,
+  deliveryFeeInCents: 300_000,
   amountInCents: 50_500_000,
   createdAt,
 };
@@ -76,6 +79,20 @@ describe('resolveTransaction', () => {
       ).toMatchObject({ ok: true, value: { status } });
     },
   );
+
+  it('keeps the known gateway id when the resolution brings none', () => {
+    const withId: Transaction = { ...pending, gatewayTransactionId: 'gw-9' };
+
+    expect(
+      resolveTransaction(withId, {
+        status: 'ERROR',
+        gatewayTransactionId: null,
+        at: resolvedAt,
+      }),
+    ).toMatchObject({
+      value: { status: 'ERROR', gatewayTransactionId: 'gw-9' },
+    });
+  });
 
   it('does not modify the original transaction', () => {
     resolveTransaction(pending, resolution);

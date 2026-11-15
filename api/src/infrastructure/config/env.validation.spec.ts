@@ -12,6 +12,8 @@ const validEnv = {
   GATEWAY_PRIVATE_KEY: 'prv_test_key',
   GATEWAY_INTEGRITY_SECRET: 'integrity_secret',
   GATEWAY_TIMEOUT_MS: '8000',
+  BASE_FEE_IN_CENTS: '250000',
+  DELIVERY_FEE_IN_CENTS: '900000',
 };
 
 describe('validateEnv', () => {
@@ -28,6 +30,8 @@ describe('validateEnv', () => {
       GATEWAY_PRIVATE_KEY: 'prv_test_key',
       GATEWAY_INTEGRITY_SECRET: 'integrity_secret',
       GATEWAY_TIMEOUT_MS: 8000,
+      BASE_FEE_IN_CENTS: 250_000,
+      DELIVERY_FEE_IN_CENTS: 900_000,
     });
   });
 
@@ -120,4 +124,31 @@ describe('validateEnv', () => {
 
     expect(() => validateEnv(env)).not.toThrow(/prv_test_key|integrity_secret/);
   });
+
+  it('uses default fees when none are configured', () => {
+    const env = {
+      ...validEnv,
+      BASE_FEE_IN_CENTS: undefined,
+      DELIVERY_FEE_IN_CENTS: undefined,
+    };
+
+    expect(validateEnv(env)).toMatchObject({
+      BASE_FEE_IN_CENTS: 300_000,
+      DELIVERY_FEE_IN_CENTS: 1_200_000,
+    });
+  });
+
+  it('accepts a fee of zero', () => {
+    const env = { ...validEnv, BASE_FEE_IN_CENTS: '0' };
+
+    expect(validateEnv(env).BASE_FEE_IN_CENTS).toBe(0);
+  });
+
+  it.each(['BASE_FEE_IN_CENTS', 'DELIVERY_FEE_IN_CENTS'])(
+    'fails when %s is negative or has decimals',
+    (name) => {
+      expect(() => validateEnv({ ...validEnv, [name]: '-1' })).toThrow(name);
+      expect(() => validateEnv({ ...validEnv, [name]: '10.5' })).toThrow(name);
+    },
+  );
 });

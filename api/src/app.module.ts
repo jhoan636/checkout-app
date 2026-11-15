@@ -4,6 +4,7 @@ import { validateEnv } from './infrastructure/config/env.validation';
 import { DatabaseModule } from './infrastructure/database/database.module';
 import { PersistenceModule } from './infrastructure/persistence/persistence.module';
 import { GatewayModule } from './infrastructure/gateway/gateway.module';
+import { UseCasesModule } from './infrastructure/wiring/use-cases.module';
 import { HealthController } from './infrastructure/http/health/health.controller';
 
 @Module({
@@ -12,6 +13,7 @@ import { HealthController } from './infrastructure/http/health/health.controller
     DatabaseModule,
     PersistenceModule,
     GatewayModule,
+    UseCasesModule,
   ],
   controllers: [HealthController],
 })
