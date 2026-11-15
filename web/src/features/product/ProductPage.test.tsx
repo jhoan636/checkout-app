@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Product } from '../../api/types'
 import { initialCheckoutState } from '../../store/checkout.slice'
@@ -161,52 +161,6 @@ describe('ProductPage', () => {
       expect(payButton()).toBeDisabled()
       expect(screen.getByTestId('total')).toHaveTextContent('$0')
       expect(screen.queryByLabelText('Quantity')).toBeNull()
-    })
-  })
-
-  describe('other products of the store', () => {
-    const others = () =>
-      within(screen.getByRole('region', { name: 'More products' }))
-
-    it('lists the rest of the products with their price', () => {
-      renderProduct()
-
-      const other = others().getByRole('button', {
-        name: /Nimbus Mechanical Keyboard/,
-      })
-      expect(other).toHaveTextContent('$389.500')
-      expect(
-        others().queryByRole('button', { name: /Aurora Wireless Headphones/ }),
-      ).toBeNull()
-    })
-
-    it('shows another product and goes back to one unit', async () => {
-      const user = userEvent.setup()
-      renderProduct({ quantity: 4 })
-
-      await user.click(
-        others().getByRole('button', { name: /Nimbus Mechanical Keyboard/ }),
-      )
-
-      expect(title('Nimbus Mechanical Keyboard')).toBeInTheDocument()
-      expect(screen.getByLabelText('Quantity')).toHaveTextContent('1')
-      expect(
-        others().getByRole('button', { name: /Aurora Wireless Headphones/ }),
-      ).toBeInTheDocument()
-    })
-
-    it('says when another product is sold out', () => {
-      renderProduct({ items: [headphones, { ...keyboard, stock: 0 }] })
-
-      expect(
-        others().getByRole('button', { name: /Nimbus Mechanical Keyboard/ }),
-      ).toHaveTextContent('Sold out')
-    })
-
-    it('is left out when the store has a single product', () => {
-      renderProduct({ items: [headphones] })
-
-      expect(screen.queryByRole('region', { name: 'More products' })).toBeNull()
     })
   })
 })

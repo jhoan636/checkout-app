@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { DetailsModal } from './features/details/DetailsModal'
 import { ProductPage } from './features/product/ProductPage'
 import { ProductsGate } from './features/product/ProductsGate'
@@ -6,12 +5,6 @@ import { useAppSelector } from './store/hooks'
 
 function App() {
   const step = useAppSelector((state) => state.checkout.step)
-  const productId = useAppSelector((state) => state.checkout.productId)
-
-  // Another product starts at the top, not where the previous one was scrolled.
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [productId])
 
   return (
     <div className="app">

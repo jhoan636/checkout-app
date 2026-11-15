@@ -11,15 +11,9 @@ const PHOTO_SIZE = 480
 export function ProductPhoto({
   product,
   className,
-  eager = false,
-  decorative = false,
 }: {
   product: Product
   className: string
-  /** Only the photos seen first should compete for bandwidth. */
-  eager?: boolean
-  /** True when the product name is already read next to the photo. */
-  decorative?: boolean
 }) {
   const [failed, setFailed] = useState(false)
 
@@ -30,11 +24,10 @@ export function ProductPhoto({
     <img
       className={className}
       src={product.imageUrl}
-      alt={decorative ? '' : product.name}
+      alt={product.name}
       width={PHOTO_SIZE}
       height={PHOTO_SIZE}
       decoding="async"
-      loading={eager ? 'eager' : 'lazy'}
       onError={() => setFailed(true)}
     />
   )

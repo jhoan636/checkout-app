@@ -47,17 +47,4 @@ describe('App', () => {
 
     expect(await productTitle('Aurora Wireless Headphones')).toBeInTheDocument()
   })
-
-  it('starts at the top when another product is shown', async () => {
-    const user = userEvent.setup()
-    renderWithStore(<App />)
-    await productTitle('Aurora Wireless Headphones')
-    jest.mocked(window.scrollTo).mockClear()
-
-    await user.click(
-      screen.getByRole('button', { name: /Nimbus Mechanical Keyboard/ }),
-    )
-
-    expect(window.scrollTo).toHaveBeenCalledWith(0, 0)
-  })
 })

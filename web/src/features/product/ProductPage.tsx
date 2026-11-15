@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import type { Product } from '../../api/types'
 import { ProductPhoto } from '../../components/ProductPhoto'
 import { StockBadge } from '../../components/StockBadge'
 import { formatCop } from '../../lib/money'
@@ -48,43 +47,6 @@ function QuantityStepper({
   )
 }
 
-/** The rest of the store, one tap away from the product being shown. */
-function MoreProducts({
-  products,
-  onShow,
-}: {
-  products: Product[]
-  onShow: (id: string) => void
-}) {
-  if (products.length === 0) {
-    return null
-  }
-  return (
-    <section className="more" aria-labelledby="more-products">
-      <h3 id="more-products">More products</h3>
-      <ul className="more__list">
-        {products.map((item) => (
-          <li key={item.id}>
-            <button
-              type="button"
-              className="more__item"
-              onClick={() => onShow(item.id)}
-            >
-              <span className="more__frame">
-                <ProductPhoto product={item} className="more__photo" decorative />
-              </span>
-              <span className="more__name">{item.name}</span>
-              <span className="more__price">
-                {item.stock === 0 ? 'Sold out' : formatCop(item.priceInCents)}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}
-
 /** One product: what it is, what it costs, how many are left, and the way to pay. */
 export function ProductPage() {
   const dispatch = useAppDispatch()
@@ -116,7 +78,7 @@ export function ProductPage() {
     <section className="product">
       <div className="product__layout">
         <div className="product__frame">
-          <ProductPhoto product={product} className="product__photo" eager />
+          <ProductPhoto product={product} className="product__photo" />
         </div>
 
         <div className="product__info">
@@ -145,11 +107,6 @@ export function ProductPage() {
           </p>
         </div>
       </div>
-
-      <MoreProducts
-        products={items.filter((item) => item.id !== product.id)}
-        onShow={(id) => dispatch(productSelected(id))}
-      />
 
       <footer className="bar">
         <div className="bar__inner">
