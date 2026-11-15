@@ -15,7 +15,7 @@ export interface CardSummary {
   lastFour: string
 }
 
-/** What the customer confirms on the details form. */
+/** What is kept from the details form once the card has been tokenized. */
 export interface PurchaseDetails {
   customer: Customer
   delivery: DeliveryAddress
@@ -29,6 +29,14 @@ export interface CheckoutState {
   customer: Customer | null
   delivery: DeliveryAddress | null
   card: CardSummary | null
+  /**
+   * One-use token the gateway gave in exchange for the card. It lives in
+   * memory only and is useless without the private key our API holds.
+   */
+  cardToken: string | null
+  /** True while the gateway is checking the card. */
+  submitting: boolean
+  submitError: string | null
 }
 
 export const initialCheckoutState: CheckoutState = {
@@ -38,6 +46,9 @@ export const initialCheckoutState: CheckoutState = {
   customer: null,
   delivery: null,
   card: null,
+  cardToken: null,
+  submitting: false,
+  submitError: null,
 }
 
 const clampQuantity = (quantity: number): number => {
@@ -67,19 +78,52 @@ const checkoutSlice = createSlice({
         state.step = 'details'
       }
     },
-    detailsSubmitted(state, action: PayloadAction<PurchaseDetails>) {
-      if (state.step !== 'details') {
+    detailsSubmitting(state) {
+      if (state.step === 'details') {
+        state.submitting = true
+        state.submitError = null
+      }
+    },
+    detailsRejected(state, action: PayloadAction<string>) {
+      if (state.submitting) {
+        state.submitting = false
+        state.submitError = action.payload
+      }
+    },
+    /** Only an answer the form is still waiting for moves the checkout on. */
+    detailsSubmitted(
+      state,
+      action: PayloadAction<PurchaseDetails & { cardToken: string }>,
+    ) {
+      if (state.step !== 'details' || !state.submitting) {
         return
       }
       state.customer = action.payload.customer
       state.delivery = action.payload.delivery
       state.card = action.payload.card
+      state.cardToken = action.payload.cardToken
+      state.submitting = false
       state.step = 'summary'
     },
     /** Contact details are kept, so the form is not empty on the way back. */
     detailsClosed(state) {
       if (state.step === 'details') {
         state.step = 'product'
+        state.submitting = false
+        state.submitError = null
+      }
+    },
+    /** Going back needs the card again: its token is single use. */
+    summaryClosed(state) {
+      if (state.step === 'summary') {
+        state.step = 'details'
+        state.card = null
+        state.cardToken = null
+      }
+    },
+    paymentStarted(state) {
+      if (state.step === 'summary' && state.cardToken) {
+        state.step = 'status'
       }
     },
   },
@@ -89,7 +133,11 @@ export const {
   productSelected,
   quantityChanged,
   checkoutStarted,
+  detailsSubmitting,
+  detailsRejected,
   detailsSubmitted,
   detailsClosed,
+  summaryClosed,
+  paymentStarted,
 } = checkoutSlice.actions
 export const checkoutReducer = checkoutSlice.reducer

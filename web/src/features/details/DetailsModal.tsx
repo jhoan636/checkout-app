@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, InputHTMLAttributes, ReactNode, SyntheticEvent } from 'react'
+import { BrandLogo } from '../../components/BrandLogo'
+import { Modal } from '../../components/Modal'
 import { detectBrand, digitsOnly, formatCardNumber, formatExpiry } from '../../lib/card'
-import type { CardBrand } from '../../lib/card'
-import { detailsClosed, detailsSubmitted } from '../../store/checkout.slice'
+import { detailsClosed } from '../../store/checkout.slice'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { selectProductById } from '../../store/products.slice'
-import { emptyDetails, toPurchaseDetails, validateDetails } from './validation'
+import { submitDetails } from './submit-details'
+import { emptyDetails, validateDetails } from './validation'
 import type { DetailsField, DetailsValues } from './validation'
 import './details.css'
 
@@ -16,35 +18,6 @@ const formatters: Partial<Record<DetailsField, (value: string) => string>> = {
   cardNumber: formatCardNumber,
   expiry: formatExpiry,
   cvc: (value) => digitsOnly(value).slice(0, 3),
-}
-
-function BrandLogo({ brand }: { brand: CardBrand }) {
-  if (brand === 'visa') {
-    return (
-      <svg className="brand" viewBox="0 0 48 30" role="img" aria-label="Visa">
-        <rect width="48" height="30" rx="4" fill="#1a1f71" />
-        <text
-          x="24"
-          y="20.5"
-          textAnchor="middle"
-          fontFamily="Arial, sans-serif"
-          fontSize="14"
-          fontStyle="italic"
-          fontWeight="700"
-          fill="#fff"
-        >
-          VISA
-        </text>
-      </svg>
-    )
-  }
-  return (
-    <svg className="brand" viewBox="0 0 48 30" role="img" aria-label="MasterCard">
-      <rect width="48" height="30" rx="4" fill="#1d1d1f" />
-      <circle cx="19" cy="15" r="9" fill="#eb001b" />
-      <circle cx="29" cy="15" r="9" fill="#f79e1b" fillOpacity="0.9" />
-    </svg>
-  )
 }
 
 /** A small picture of the card that fills in as the customer types. */
@@ -112,9 +85,8 @@ export function DetailsModal({ now }: { now?: Date }) {
   const dispatch = useAppDispatch()
   // Today's date is read once, when the form opens.
   const [today] = useState(() => now ?? new Date())
-  const { productId, quantity, customer, delivery } = useAppSelector(
-    (state) => state.checkout,
-  )
+  const { productId, quantity, customer, delivery, submitting, submitError } =
+    useAppSelector((state) => state.checkout)
   const product = useAppSelector((state) =>
     selectProductById(state, productId),
   )
@@ -129,22 +101,12 @@ export function DetailsModal({ now }: { now?: Date }) {
     {},
   )
   const [submitted, setSubmitted] = useState(false)
-  const dialogRef = useRef<HTMLDialogElement>(null)
   const inputs = useRef<Partial<Record<DetailsField, HTMLInputElement | null>>>(
     {},
   )
 
+  // Runs after the modal has opened, so the cursor lands on the first field.
   useEffect(() => {
-    const dialog = dialogRef.current
-    if (!dialog || dialog.open) {
-      return
-    }
-    // A native modal traps the focus and makes the page behind inert.
-    if (typeof dialog.showModal === 'function') {
-      dialog.showModal()
-    } else {
-      dialog.setAttribute('open', '')
-    }
     inputs.current.cardNumber?.focus()
   }, [])
 
@@ -178,21 +140,13 @@ export function DetailsModal({ now }: { now?: Date }) {
       inputs.current[firstInvalid]?.focus()
       return
     }
-    dispatch(detailsSubmitted(toPurchaseDetails(values)))
+    void dispatch(submitDetails(values))
   }
 
   const close = () => dispatch(detailsClosed())
 
   return (
-    <dialog
-      ref={dialogRef}
-      className="sheet"
-      aria-labelledby="details-title"
-      onCancel={(event) => {
-        event.preventDefault()
-        close()
-      }}
-    >
+    <Modal className="sheet" labelledBy="details-title" onClose={close}>
       <form className="sheet__form" noValidate onSubmit={submit}>
         <header className="sheet__head">
           <div>
@@ -317,11 +271,20 @@ export function DetailsModal({ now }: { now?: Date }) {
         </div>
 
         <footer className="sheet__foot">
-          <button type="submit" className="button button--primary">
-            Continue
+          {submitError && (
+            <p className="sheet__error" role="alert">
+              {submitError}
+            </p>
+          )}
+          <button
+            type="submit"
+            className="button button--primary"
+            disabled={submitting}
+          >
+            {submitting ? 'Verifying card…' : 'Continue'}
           </button>
         </footer>
       </form>
-    </dialog>
+    </Modal>
   )
 }

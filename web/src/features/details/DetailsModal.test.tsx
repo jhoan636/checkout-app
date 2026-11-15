@@ -1,8 +1,14 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { initialCheckoutState } from '../../store/checkout.slice'
 import type { CheckoutState } from '../../store/checkout.slice'
-import { headphones, readyProducts, renderWithStore } from '../../test/render'
+import type { PaymentGateway } from '../../api/gateway'
+import {
+  fakeGateway,
+  headphones,
+  readyProducts,
+  renderWithStore,
+} from '../../test/render'
 import { DetailsModal } from './DetailsModal'
 
 const now = new Date(2026, 10, 15)
@@ -14,8 +20,12 @@ const onDetails: CheckoutState = {
   quantity: 2,
 }
 
-const renderModal = (checkout: CheckoutState = onDetails) =>
+const renderModal = (
+  checkout: CheckoutState = onDetails,
+  gateway: PaymentGateway = fakeGateway(),
+) =>
   renderWithStore(<DetailsModal now={now} />, {
+    gateway,
     state: {
       checkout,
       products: readyProducts(),
@@ -44,16 +54,6 @@ describe('DetailsModal', () => {
     const dialog = screen.getByRole('dialog', { name: 'Payment details' })
     expect(dialog).toHaveTextContent('Aurora Wireless Headphones')
     expect(dialog).toHaveTextContent('2 units')
-  })
-
-  it('opens as a native modal where the browser supports it', () => {
-    const showModal = jest.fn()
-    HTMLDialogElement.prototype.showModal = showModal
-
-    renderModal()
-
-    expect(showModal).toHaveBeenCalledTimes(1)
-    delete (HTMLDialogElement.prototype as Partial<HTMLDialogElement>).showModal
   })
 
   it('starts with the cursor on the card number', () => {
@@ -166,15 +166,37 @@ describe('DetailsModal', () => {
   })
 
   describe('continuing', () => {
-    it('keeps the contact details and moves to the summary', async () => {
+    const cardRejected = () =>
+      fakeGateway({
+        tokenizeCard: jest.fn().mockResolvedValue({
+          ok: false,
+          error: {
+            status: 422,
+            code: 'CARD_REJECTED',
+            message: 'The card was not accepted. Check its details and try again.',
+          },
+        }),
+      })
+
+    it('exchanges the card for a token and moves to the summary', async () => {
       const user = userEvent.setup()
-      const { store } = renderModal()
+      const { store, gateway } = renderModal()
       await fillEverything(user)
 
       await user.click(screen.getByRole('button', { name: 'Continue' }))
 
+      await waitFor(() =>
+        expect(store.getState().checkout.step).toBe('summary'),
+      )
+      expect(gateway.tokenizeCard).toHaveBeenCalledWith({
+        number: '4242424242424242',
+        cvc: '123',
+        expMonth: '12',
+        expYear: '28',
+        cardHolder: 'Ana Maria Perez',
+      })
       expect(store.getState().checkout).toMatchObject({
-        step: 'summary',
+        cardToken: 'tok_test_1',
         customer: {
           fullName: 'Ana Maria Perez',
           email: 'ana@example.com',
@@ -195,12 +217,66 @@ describe('DetailsModal', () => {
       await fillEverything(user)
 
       await user.click(screen.getByRole('button', { name: 'Continue' }))
+      await waitFor(() =>
+        expect(store.getState().checkout.step).toBe('summary'),
+      )
 
       const saved = JSON.stringify(store.getState())
       expect(saved).not.toContain('4242424242424242')
       expect(saved).not.toContain('4242 4242 4242 4242')
       expect(saved).not.toContain('"123"')
       expect(saved).not.toContain('12/28')
+    })
+
+    it('cannot be sent twice while the card is being verified', async () => {
+      const user = userEvent.setup()
+      const { gateway } = renderModal(
+        onDetails,
+        fakeGateway({ tokenizeCard: jest.fn(() => new Promise(() => undefined)) }),
+      )
+      await fillEverything(user)
+
+      await user.click(screen.getByRole('button', { name: 'Continue' }))
+
+      const button = screen.getByRole('button', { name: 'Verifying card…' })
+      expect(button).toBeDisabled()
+      await user.click(button)
+      expect(gateway.tokenizeCard).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not ask the gateway anything while the form has mistakes', async () => {
+      const user = userEvent.setup()
+      const { gateway } = renderModal()
+
+      await user.click(screen.getByRole('button', { name: 'Continue' }))
+
+      expect(gateway.tokenizeCard).not.toHaveBeenCalled()
+    })
+
+    it('explains the problem when the card is not accepted', async () => {
+      const user = userEvent.setup()
+      const { store } = renderModal(onDetails, cardRejected())
+      await fillEverything(user)
+
+      await user.click(screen.getByRole('button', { name: 'Continue' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'The card was not accepted. Check its details and try again.',
+      )
+      expect(store.getState().checkout.step).toBe('details')
+      expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled()
+    })
+
+    it('keeps what was typed so the customer can correct it', async () => {
+      const user = userEvent.setup()
+      renderModal(onDetails, cardRejected())
+      await fillEverything(user)
+
+      await user.click(screen.getByRole('button', { name: 'Continue' }))
+      await screen.findByRole('alert')
+
+      expect(field('Card number')).toHaveValue('4242 4242 4242 4242')
+      expect(field('Full name')).toHaveValue('Ana Maria Perez')
     })
   })
 

@@ -2,11 +2,15 @@ import {
   checkoutReducer,
   checkoutStarted,
   detailsClosed,
+  detailsRejected,
   detailsSubmitted,
+  detailsSubmitting,
   initialCheckoutState,
+  paymentStarted,
   MAX_UNITS_PER_PURCHASE,
   productSelected,
   quantityChanged,
+  summaryClosed,
 } from './checkout.slice'
 import type { PurchaseDetails } from './checkout.slice'
 
@@ -35,6 +39,9 @@ describe('checkout slice', () => {
       customer: null,
       delivery: null,
       card: null,
+      cardToken: null,
+      submitting: false,
+      submitError: null,
     })
   })
 
@@ -92,25 +99,75 @@ describe('checkout slice', () => {
 
   describe('details', () => {
     const onDetails = { ...initial, step: 'details' as const, productId: 'prod-1' }
+    const waiting = { ...onDetails, submitting: true }
+    const tokenized = { ...details, cardToken: 'tok_test_1' }
 
-    it('keeps the details and moves to the summary', () => {
-      const state = checkoutReducer(onDetails, detailsSubmitted(details))
+    it('waits while the card is being checked', () => {
+      const state = checkoutReducer(
+        { ...onDetails, submitError: 'Old problem' },
+        detailsSubmitting(),
+      )
 
-      expect(state).toMatchObject({ step: 'summary', ...details })
+      expect(state).toMatchObject({ submitting: true, submitError: null })
+    })
+
+    it('does not wait for a card outside the form', () => {
+      expect(checkoutReducer(initial, detailsSubmitting())).toEqual(initial)
+    })
+
+    it('keeps the details and the card token, and moves to the summary', () => {
+      const state = checkoutReducer(waiting, detailsSubmitted(tokenized))
+
+      expect(state).toMatchObject({
+        step: 'summary',
+        ...details,
+        cardToken: 'tok_test_1',
+        submitting: false,
+      })
     })
 
     it('ignores details sent from another step', () => {
-      const state = checkoutReducer(initial, detailsSubmitted(details))
+      const state = checkoutReducer(initial, detailsSubmitted(tokenized))
 
       expect(state).toEqual(initial)
     })
 
+    it('ignores an answer the form is no longer waiting for', () => {
+      // The customer closed the form and opened it again in the meantime.
+      const state = checkoutReducer(onDetails, detailsSubmitted(tokenized))
+
+      expect(state).toEqual(onDetails)
+    })
+
+    it('explains why the card was not accepted and stays on the form', () => {
+      const state = checkoutReducer(waiting, detailsRejected('Card not accepted'))
+
+      expect(state).toMatchObject({
+        step: 'details',
+        submitting: false,
+        submitError: 'Card not accepted',
+      })
+    })
+
+    it('ignores a rejection nobody is waiting for', () => {
+      expect(checkoutReducer(onDetails, detailsRejected('Late'))).toEqual(onDetails)
+    })
+
     it('goes back to the product when the form is closed', () => {
-      expect(checkoutReducer(onDetails, detailsClosed()).step).toBe('product')
+      const state = checkoutReducer(
+        { ...waiting, submitError: 'Card not accepted' },
+        detailsClosed(),
+      )
+
+      expect(state).toMatchObject({
+        step: 'product',
+        submitting: false,
+        submitError: null,
+      })
     })
 
     it('remembers the contact details after going back', () => {
-      const submitted = checkoutReducer(onDetails, detailsSubmitted(details))
+      const submitted = checkoutReducer(waiting, detailsSubmitted(tokenized))
       const state = checkoutReducer(
         { ...submitted, step: 'details' },
         detailsClosed(),
@@ -124,6 +181,54 @@ describe('checkout slice', () => {
       const onSummary = { ...onDetails, step: 'summary' as const }
 
       expect(checkoutReducer(onSummary, detailsClosed()).step).toBe('summary')
+    })
+  })
+
+  describe('summary', () => {
+    const onSummary = {
+      ...initial,
+      ...details,
+      step: 'summary' as const,
+      productId: 'prod-1',
+      cardToken: 'tok_test_1',
+    }
+
+    it('goes back to the form and forgets the card, which must be typed again', () => {
+      const state = checkoutReducer(onSummary, summaryClosed())
+
+      expect(state).toMatchObject({
+        step: 'details',
+        card: null,
+        cardToken: null,
+        customer: details.customer,
+        delivery: details.delivery,
+      })
+    })
+
+    it('does not go back from another step', () => {
+      expect(checkoutReducer(initial, summaryClosed())).toEqual(initial)
+    })
+
+    it('moves to the status when the customer pays', () => {
+      expect(checkoutReducer(onSummary, paymentStarted()).step).toBe('status')
+    })
+
+    it('does not pay without a card token', () => {
+      const state = checkoutReducer(
+        { ...onSummary, cardToken: null },
+        paymentStarted(),
+      )
+
+      expect(state.step).toBe('summary')
+    })
+
+    it('does not pay from another step', () => {
+      const state = checkoutReducer(
+        { ...onSummary, step: 'details' },
+        paymentStarted(),
+      )
+
+      expect(state.step).toBe('details')
     })
   })
 })
