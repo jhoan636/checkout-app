@@ -13,37 +13,26 @@ import './product.css'
 
 const LOW_STOCK = 3
 /** Intrinsic size of the product photos; reserves the space before they load. */
-const PHOTO_SIZE = 960
+const PHOTO_SIZE = 480
 
-/** `/products/aurora-headphones.webp` becomes `aurora-headphones`. */
-const slugOf = (product: Product): string =>
-  product.imageUrl.split('/').pop()?.replace(/\.\w+$/, '') ?? ''
-
-/** If the photo cannot load, the coloured background stays as a clean fallback. */
-function ProductPhoto({
-  product,
-  variant,
-}: {
-  product: Product
-  variant: 'main' | 'thumb'
-}) {
+/** If the photo cannot load, the neutral frame stays as a clean fallback. */
+function ProductPhoto({ product, eager }: { product: Product; eager: boolean }) {
   const [failed, setFailed] = useState(false)
-  const isMain = variant === 'main'
 
   if (failed) {
     return null
   }
   return (
     <img
-      className={isMain ? 'product__photo' : 'switcher__photo'}
+      className="card__photo"
       src={product.imageUrl}
-      // The thumbnail sits inside a button that already names the product.
-      alt={isMain ? product.name : ''}
+      // Decorative here: the card already reads the product name aloud.
+      alt=""
       width={PHOTO_SIZE}
       height={PHOTO_SIZE}
       decoding="async"
-      loading={isMain ? 'eager' : 'lazy'}
-      fetchPriority={isMain ? 'high' : 'auto'}
+      // Only the first photos compete for bandwidth; the rest wait their turn.
+      loading={eager ? 'eager' : 'lazy'}
       onError={() => setFailed(true)}
     />
   )
@@ -100,32 +89,60 @@ function QuantityStepper({
   )
 }
 
-function ProductSwitcher({
-  products,
-  selectedId,
+function ProductCard({
+  product,
+  selected,
+  quantity,
+  eager,
   onSelect,
+  onQuantity,
 }: {
-  products: Product[]
-  selectedId: string
-  onSelect: (id: string) => void
+  product: Product
+  selected: boolean
+  quantity: number
+  eager: boolean
+  onSelect: () => void
+  onQuantity: (quantity: number) => void
 }) {
+  const soldOut = product.stock === 0
+
   return (
-    <ul className="switcher" aria-label="Products">
-      {products.map((product) => (
-        <li key={product.id}>
-          <button
-            type="button"
-            className="switcher__item"
-            data-product={slugOf(product)}
-            aria-label={product.name}
-            aria-pressed={product.id === selectedId}
-            onClick={() => onSelect(product.id)}
-          >
-            <ProductPhoto product={product} variant="thumb" />
-          </button>
-        </li>
-      ))}
-    </ul>
+    <li className="card" data-selected={selected} data-sold-out={soldOut}>
+      <label className="card__main">
+        <input
+          type="radio"
+          name="product"
+          className="card__radio"
+          checked={selected}
+          disabled={soldOut}
+          onChange={onSelect}
+        />
+        <span className="card__frame">
+          <ProductPhoto product={product} eager={eager} />
+        </span>
+        <span className="card__body">
+          <span className="card__name">{product.name}</span>
+          <span className="card__description">{product.description}</span>
+          <span className="card__row">
+            <strong className="card__price">
+              {formatCop(product.priceInCents)}
+            </strong>
+            <StockBadge stock={product.stock} />
+          </span>
+        </span>
+      </label>
+
+      {selected && (
+        <div className="card__quantity">
+          <span>Units</span>
+          <QuantityStepper
+            quantity={quantity}
+            max={Math.min(product.stock, MAX_UNITS_PER_PURCHASE)}
+            onChange={onQuantity}
+          />
+        </div>
+      )}
+    </li>
   )
 }
 
@@ -140,6 +157,17 @@ export function ProductPage() {
     }
   }, [dispatch, status])
 
+  // The first product that can be bought is chosen for the customer.
+  const fallback = items.find((item) => item.stock > 0)
+  const chosen = items.find((item) => item.id === productId && item.stock > 0)
+  const product = chosen ?? fallback
+
+  useEffect(() => {
+    if (product && product.id !== productId) {
+      dispatch(productSelected(product.id))
+    }
+  }, [dispatch, product, productId])
+
   if (status === 'failed') {
     return (
       <section className="notice" role="alert">
@@ -147,7 +175,7 @@ export function ProductPage() {
         <p>{error}</p>
         <button
           type="button"
-          className="button"
+          className="button button--primary"
           onClick={() => void dispatch(loadProducts())}
         >
           Try again
@@ -165,8 +193,7 @@ export function ProductPage() {
     )
   }
 
-  const product = items.find((item) => item.id === productId) ?? items[0]
-  if (!product) {
+  if (items.length === 0) {
     return (
       <section className="notice">
         <p>No products available right now.</p>
@@ -174,62 +201,52 @@ export function ProductPage() {
     )
   }
 
-  const maxUnits = Math.min(product.stock, MAX_UNITS_PER_PURCHASE)
-  const soldOut = product.stock === 0
-
-  const startCheckout = () => {
-    // The first product is shown before the customer picks one explicitly.
-    if (product.id !== productId) {
-      dispatch(productSelected(product.id))
-      dispatch(quantityChanged(quantity))
-    }
-    dispatch(checkoutStarted())
-  }
+  const units = product
+    ? Math.min(quantity, product.stock, MAX_UNITS_PER_PURCHASE)
+    : 0
+  const total = product ? product.priceInCents * units : 0
 
   return (
-    <section className="product" data-product={slugOf(product)}>
-      <div className="product__stage">
-        <ProductPhoto key={product.id} product={product} variant="main" />
-      </div>
+    <section className="store">
+      <header className="store__head">
+        <h2>Store</h2>
+        <p>
+          {items.length} {items.length === 1 ? 'product' : 'products'}
+        </p>
+      </header>
 
-      <div className="product__panel">
-        {items.length > 1 && (
-          <ProductSwitcher
-            products={items}
-            selectedId={product.id}
-            onSelect={(id) => dispatch(productSelected(id))}
+      <p className="store__note">Fees and delivery are shown before you pay.</p>
+
+      <ul className="store__list" role="radiogroup" aria-label="Products">
+        {items.map((item, index) => (
+          <ProductCard
+            key={item.id}
+            product={item}
+            selected={item.id === product?.id}
+            quantity={units}
+            eager={index < 2}
+            onSelect={() => dispatch(productSelected(item.id))}
+            onQuantity={(next) => dispatch(quantityChanged(next))}
           />
-        )}
+        ))}
+      </ul>
 
-        <div className="product__meta">
-          <StockBadge stock={product.stock} />
-          {!soldOut && (
-            <QuantityStepper
-              quantity={Math.min(quantity, maxUnits)}
-              max={maxUnits}
-              onChange={(next) => dispatch(quantityChanged(next))}
-            />
-          )}
-        </div>
-
-        <h2 className="product__name">{product.name}</h2>
-        <p className="product__description">{product.description}</p>
-
-        <div className="dock">
-          <div className="dock__price">
-            <span className="dock__label">Each</span>
-            <strong>{formatCop(product.priceInCents)}</strong>
+      <footer className="bar">
+        <div className="bar__inner">
+          <div className="bar__total">
+            <span>Total</span>
+            <strong data-testid="total">{formatCop(total)}</strong>
           </div>
           <button
             type="button"
             className="button button--primary"
-            disabled={soldOut}
-            onClick={startCheckout}
+            disabled={!product}
+            onClick={() => dispatch(checkoutStarted())}
           >
             Pay with credit card
           </button>
         </div>
-      </div>
+      </footer>
     </section>
   )
 }

@@ -15,7 +15,7 @@ describe('App', () => {
     renderWithStore(<App />)
 
     expect(
-      await screen.findByRole('heading', { name: 'Aurora Wireless Headphones' }),
+      await screen.findByRole('radio', { name: /Aurora Wireless Headphones/ }),
     ).toBeInTheDocument()
   })
 })

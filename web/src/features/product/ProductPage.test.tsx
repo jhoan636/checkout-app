@@ -1,9 +1,13 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { fakeApi, headphones, keyboard, renderWithStore } from '../../test/render'
 import { ProductPage } from './ProductPage'
 
-const product = (name: string) => screen.findByRole('heading', { name })
+const card = (name: string) => screen.findByRole('radio', { name: new RegExp(name) })
+const cardOf = async (name: string) =>
+  (await card(name)).closest('li') as HTMLElement
+const payButton = () =>
+  screen.getByRole('button', { name: 'Pay with credit card' })
 
 describe('ProductPage', () => {
   it('shows a loading state while the products arrive', () => {
@@ -14,108 +18,149 @@ describe('ProductPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Loading products')
   })
 
-  it('shows the first product with its description, price and stock', async () => {
-    renderWithStore(<ProductPage />)
+  describe('the catalogue', () => {
+    it('lists every product with its description, price and stock', async () => {
+      renderWithStore(<ProductPage />)
 
-    expect(await product('Aurora Wireless Headphones')).toBeInTheDocument()
-    expect(
-      screen.getByText('Over-ear headphones with noise cancelling.'),
-    ).toBeInTheDocument()
-    expect(screen.getByText('$459.900')).toBeInTheDocument()
-    expect(screen.getByText('12 in stock')).toBeInTheDocument()
-  })
+      const first = within(await cardOf('Aurora Wireless Headphones'))
+      expect(
+        first.getByText('Over-ear headphones with noise cancelling.'),
+      ).toBeInTheDocument()
+      expect(first.getByText('$459.900')).toBeInTheDocument()
+      expect(first.getByText('12 in stock')).toBeInTheDocument()
 
-  it('shows the product image with a description and its real size', async () => {
-    renderWithStore(<ProductPage />)
-
-    const image = await screen.findByRole('img', {
-      name: 'Aurora Wireless Headphones',
-    })
-    expect(image).toHaveAttribute('src', '/products/aurora-headphones.webp')
-    expect(image).toHaveAttribute('width')
-    expect(image).toHaveAttribute('height')
-  })
-
-  it('keeps the page usable when the photo cannot be loaded', async () => {
-    renderWithStore(<ProductPage />)
-    const image = await screen.findByRole('img', {
-      name: 'Aurora Wireless Headphones',
+      const second = within(await cardOf('Nimbus Mechanical Keyboard'))
+      expect(second.getByText('$389.500')).toBeInTheDocument()
+      expect(second.getByText('3 in stock')).toBeInTheDocument()
     })
 
-    fireEvent.error(image)
+    it('says how many products there are', async () => {
+      renderWithStore(<ProductPage />)
 
-    expect(
-      screen.queryByRole('img', { name: 'Aurora Wireless Headphones' }),
-    ).not.toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Pay with credit card' }),
-    ).toBeEnabled()
-  })
+      expect(await screen.findByText('2 products')).toBeInTheDocument()
+    })
 
-  it('loads the products only once', async () => {
-    const { api, rerender } = renderWithStore(<ProductPage />)
-    await product('Aurora Wireless Headphones')
+    // The photo has an empty alt (the card names the product), so it is
+    // found as an element rather than by an accessible role.
+    it('shows each photo with its real size, so the page does not jump', async () => {
+      renderWithStore(<ProductPage />)
+      const image = (await cardOf('Aurora Wireless Headphones')).querySelector(
+        'img',
+      )
 
-    rerender(<ProductPage />)
+      expect(image).toHaveAttribute('src', '/products/aurora-headphones.webp')
+      expect(image).toHaveAttribute('width')
+      expect(image).toHaveAttribute('height')
+      expect(image).toHaveAttribute('alt', '')
+    })
 
-    expect(api.getProducts).toHaveBeenCalledTimes(1)
+    it('keeps the card usable when its photo cannot be loaded', async () => {
+      renderWithStore(<ProductPage />)
+      const item = await cardOf('Aurora Wireless Headphones')
+
+      fireEvent.error(item.querySelector('img')!)
+
+      expect(item.querySelector('img')).toBeNull()
+      expect(payButton()).toBeEnabled()
+    })
+
+    it('warns when only a few units are left', async () => {
+      renderWithStore(<ProductPage />)
+
+      expect(await screen.findByText('3 in stock')).toHaveAttribute(
+        'data-level',
+        'low',
+      )
+    })
+
+    it('loads the products only once', async () => {
+      const { api, rerender } = renderWithStore(<ProductPage />)
+      await card('Aurora Wireless Headphones')
+
+      rerender(<ProductPage />)
+
+      expect(api.getProducts).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('choosing a product', () => {
-    it('switches to another product', async () => {
-      const user = userEvent.setup()
+    it('starts with the first available product chosen', async () => {
       renderWithStore(<ProductPage />)
-      await product('Aurora Wireless Headphones')
 
-      await user.click(
-        screen.getByRole('button', { name: 'Nimbus Mechanical Keyboard' }),
-      )
-
-      expect(await product('Nimbus Mechanical Keyboard')).toBeInTheDocument()
-      expect(screen.getByText('$389.500')).toBeInTheDocument()
-      expect(screen.getByText('3 in stock')).toBeInTheDocument()
+      expect(await card('Aurora Wireless Headphones')).toBeChecked()
+      expect(await card('Nimbus Mechanical Keyboard')).not.toBeChecked()
     })
 
-    it('marks which product is selected', async () => {
-      renderWithStore(<ProductPage />)
-      await product('Aurora Wireless Headphones')
+    it('skips a sold-out product when choosing the first one', async () => {
+      renderWithStore(<ProductPage />, {
+        api: fakeApi({
+          getProducts: jest.fn().mockResolvedValue({
+            ok: true,
+            data: [{ ...headphones, stock: 0 }, keyboard],
+          }),
+        }),
+      })
 
-      expect(
-        screen.getByRole('button', { name: 'Aurora Wireless Headphones' }),
-      ).toHaveAttribute('aria-pressed', 'true')
-      expect(
-        screen.getByRole('button', { name: 'Nimbus Mechanical Keyboard' }),
-      ).toHaveAttribute('aria-pressed', 'false')
+      expect(await card('Nimbus Mechanical Keyboard')).toBeChecked()
+    })
+
+    it('chooses another product', async () => {
+      const user = userEvent.setup()
+      renderWithStore(<ProductPage />)
+
+      await user.click(await card('Nimbus Mechanical Keyboard'))
+
+      expect(await card('Nimbus Mechanical Keyboard')).toBeChecked()
+      expect(screen.getByTestId('total')).toHaveTextContent('$389.500')
+    })
+
+    it('cannot choose a product that is sold out', async () => {
+      renderWithStore(<ProductPage />, {
+        api: fakeApi({
+          getProducts: jest.fn().mockResolvedValue({
+            ok: true,
+            data: [headphones, { ...keyboard, stock: 0 }],
+          }),
+        }),
+      })
+
+      expect(await card('Nimbus Mechanical Keyboard')).toBeDisabled()
+      expect(screen.getByText('Sold out')).toBeInTheDocument()
     })
   })
 
   describe('quantity', () => {
     it('starts at one and cannot go lower', async () => {
       renderWithStore(<ProductPage />)
-      await product('Aurora Wireless Headphones')
+      await card('Aurora Wireless Headphones')
 
       expect(screen.getByLabelText('Quantity')).toHaveTextContent('1')
-      expect(screen.getByRole('button', { name: 'Remove one unit' })).toBeDisabled()
+      expect(
+        screen.getByRole('button', { name: 'Remove one unit' }),
+      ).toBeDisabled()
     })
 
-    it('increases and decreases', async () => {
+    it('changes the total as units are added and removed', async () => {
       const user = userEvent.setup()
       renderWithStore(<ProductPage />)
-      await product('Aurora Wireless Headphones')
+      await card('Aurora Wireless Headphones')
 
       await user.click(screen.getByRole('button', { name: 'Add one unit' }))
       await user.click(screen.getByRole('button', { name: 'Add one unit' }))
       await user.click(screen.getByRole('button', { name: 'Remove one unit' }))
 
       expect(screen.getByLabelText('Quantity')).toHaveTextContent('2')
+      expect(screen.getByTestId('total')).toHaveTextContent('$919.800')
     })
 
     it('cannot go above the units in stock', async () => {
       const user = userEvent.setup()
-      renderWithStore(<ProductPage />, { state: { checkout: {
-        step: 'product', productId: keyboard.id, quantity: 3,
-      } } })
-      await product('Nimbus Mechanical Keyboard')
+      renderWithStore(<ProductPage />, {
+        state: {
+          checkout: { step: 'product', productId: keyboard.id, quantity: 3 },
+        },
+      })
+      await card('Nimbus Mechanical Keyboard')
 
       expect(screen.getByRole('button', { name: 'Add one unit' })).toBeDisabled()
       await user.click(screen.getByRole('button', { name: 'Add one unit' }))
@@ -125,12 +170,10 @@ describe('ProductPage', () => {
     it('goes back to one when another product is chosen', async () => {
       const user = userEvent.setup()
       renderWithStore(<ProductPage />)
-      await product('Aurora Wireless Headphones')
+      await card('Aurora Wireless Headphones')
       await user.click(screen.getByRole('button', { name: 'Add one unit' }))
 
-      await user.click(
-        screen.getByRole('button', { name: 'Nimbus Mechanical Keyboard' }),
-      )
+      await user.click(await card('Nimbus Mechanical Keyboard'))
 
       expect(screen.getByLabelText('Quantity')).toHaveTextContent('1')
     })
@@ -140,12 +183,10 @@ describe('ProductPage', () => {
     it('starts the checkout with the product and quantity chosen', async () => {
       const user = userEvent.setup()
       const { store } = renderWithStore(<ProductPage />)
-      await product('Aurora Wireless Headphones')
+      await card('Aurora Wireless Headphones')
       await user.click(screen.getByRole('button', { name: 'Add one unit' }))
 
-      await user.click(
-        screen.getByRole('button', { name: 'Pay with credit card' }),
-      )
+      await user.click(payButton())
 
       expect(store.getState().checkout).toEqual({
         step: 'details',
@@ -154,7 +195,7 @@ describe('ProductPage', () => {
       })
     })
 
-    it('cannot pay for a product that is sold out', async () => {
+    it('cannot pay when every product is sold out', async () => {
       renderWithStore(<ProductPage />, {
         api: fakeApi({
           getProducts: jest.fn().mockResolvedValue({
@@ -163,23 +204,10 @@ describe('ProductPage', () => {
           }),
         }),
       })
-      await product('Aurora Wireless Headphones')
+      await card('Aurora Wireless Headphones')
 
-      expect(screen.getByText('Sold out')).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: 'Pay with credit card' }),
-      ).toBeDisabled()
-    })
-
-    it('warns when only a few units are left', async () => {
-      renderWithStore(<ProductPage />, { state: { checkout: {
-        step: 'product', productId: keyboard.id, quantity: 1,
-      } } })
-
-      expect(await screen.findByText('3 in stock')).toHaveAttribute(
-        'data-level',
-        'low',
-      )
+      expect(payButton()).toBeDisabled()
+      expect(screen.getByTestId('total')).toHaveTextContent('$0')
     })
   })
 
@@ -213,7 +241,7 @@ describe('ProductPage', () => {
 
       await user.click(await screen.findByRole('button', { name: 'Try again' }))
 
-      expect(await product('Aurora Wireless Headphones')).toBeInTheDocument()
+      expect(await card('Aurora Wireless Headphones')).toBeInTheDocument()
     })
   })
 
@@ -225,7 +253,9 @@ describe('ProductPage', () => {
     })
 
     await waitFor(() =>
-      expect(screen.getByText('No products available right now.')).toBeInTheDocument(),
+      expect(
+        screen.getByText('No products available right now.'),
+      ).toBeInTheDocument(),
     )
   })
 })
