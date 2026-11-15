@@ -77,7 +77,8 @@
       "!**/migrations/*.ts",
       "!**/*.orm-entity.ts",
       "!**/index.ts",
-      "!**/ports/*.ts"
+      "!**/ports/*.ts",
+      "!**/*.fake.ts"
     ],
     "coverageProvider": "v8",
     "coverageThreshold": {

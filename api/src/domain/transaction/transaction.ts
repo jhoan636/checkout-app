@@ -12,6 +12,10 @@ export interface Transaction {
   readonly reference: string;
   readonly productId: string;
   readonly quantity: number;
+  /** Price of one unit when the purchase was made. */
+  readonly unitPriceInCents: number;
+  readonly baseFeeInCents: number;
+  readonly deliveryFeeInCents: number;
   /** Total charged, as an integer amount of cents. */
   readonly amountInCents: number;
   readonly currency: 'COP';
@@ -27,6 +31,9 @@ export interface NewTransaction {
   readonly reference: string;
   readonly productId: string;
   readonly quantity: number;
+  readonly unitPriceInCents: number;
+  readonly baseFeeInCents: number;
+  readonly deliveryFeeInCents: number;
   readonly amountInCents: number;
   readonly createdAt: Date;
 }
@@ -54,7 +61,8 @@ export const createPendingTransaction = (
 
 export interface Resolution {
   readonly status: TransactionStatus;
-  readonly gatewayTransactionId: string;
+  /** Null when the gateway refused the request and never created an id. */
+  readonly gatewayTransactionId: string | null;
   readonly at: Date;
 }
 
@@ -78,7 +86,8 @@ export const resolveTransaction = (
   return ok({
     ...transaction,
     status: resolution.status,
-    gatewayTransactionId: resolution.gatewayTransactionId,
+    gatewayTransactionId:
+      resolution.gatewayTransactionId ?? transaction.gatewayTransactionId,
     updatedAt: resolution.at,
   });
 };

@@ -4,9 +4,7 @@ import { Repository } from 'typeorm';
 import { ProductRepository } from '../../../application/ports/product.repository';
 import { Product } from '../../../domain/product/product';
 import { ProductOrmEntity } from '../entities/product.orm-entity';
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { isUuid } from './uuid';
 
 const toDomain = (row: ProductOrmEntity): Product => ({
   id: row.id,
@@ -31,9 +29,7 @@ export class TypeOrmProductRepository implements ProductRepository {
   }
 
   async findById(id: string): Promise<Product | null> {
-    // PostgreSQL rejects a malformed UUID with an error; an id that cannot
-    // exist is simply reported as not found.
-    if (!UUID_PATTERN.test(id)) {
+    if (!isUuid(id)) {
       return null;
     }
     const row = await this.products.findOneBy({ id });

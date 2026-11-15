@@ -6,6 +6,12 @@ export interface Env {
   DB_PASSWORD: string;
   DB_NAME: string;
   DB_SSL: boolean;
+  GATEWAY_BASE_URL: string;
+  GATEWAY_PRIVATE_KEY: string;
+  GATEWAY_INTEGRITY_SECRET: string;
+  GATEWAY_TIMEOUT_MS: number;
+  BASE_FEE_IN_CENTS: number;
+  DELIVERY_FEE_IN_CENTS: number;
 }
 
 type RawEnv = Record<string, unknown>;
@@ -13,6 +19,11 @@ type RawEnv = Record<string, unknown>;
 const DEFAULT_PORT = '3000';
 const DEFAULT_DB_SSL = 'false';
 const MAX_PORT = 65535;
+const DEFAULT_GATEWAY_TIMEOUT_MS = '10000';
+const MAX_GATEWAY_TIMEOUT_MS = 60_000;
+const DEFAULT_BASE_FEE_IN_CENTS = '300000';
+const DEFAULT_DELIVERY_FEE_IN_CENTS = '1200000';
+const MAX_FEE_IN_CENTS = 100_000_000;
 
 /**
  * Validates the process environment at startup so a missing or malformed
@@ -55,6 +66,39 @@ export function validateEnv(raw: RawEnv): Env {
     return value === 'true';
   };
 
+  const httpsUrl = (name: string): string => {
+    const value = text(name);
+    if (value !== '' && !URL.canParse(value)) {
+      errors.push(`${name} must be a valid URL`);
+      return '';
+    }
+    if (value !== '' && new URL(value).protocol !== 'https:') {
+      errors.push(`${name} must use https`);
+      return '';
+    }
+    return value.replace(/\/+$/, '');
+  };
+
+  const integer = (
+    name: string,
+    fallback: string,
+    min: number,
+    max: number,
+  ): number => {
+    const value = raw[name] ?? fallback;
+    const parsed = Number(value);
+    const isValid =
+      typeof value === 'string' &&
+      Number.isInteger(parsed) &&
+      parsed >= min &&
+      parsed <= max;
+    if (!isValid) {
+      errors.push(`${name} must be a whole number between ${min} and ${max}`);
+      return 0;
+    }
+    return parsed;
+  };
+
   const env: Env = {
     PORT: port('PORT', DEFAULT_PORT),
     DB_HOST: text('DB_HOST'),
@@ -63,6 +107,27 @@ export function validateEnv(raw: RawEnv): Env {
     DB_PASSWORD: text('DB_PASSWORD'),
     DB_NAME: text('DB_NAME'),
     DB_SSL: flag('DB_SSL', DEFAULT_DB_SSL),
+    GATEWAY_BASE_URL: httpsUrl('GATEWAY_BASE_URL'),
+    GATEWAY_PRIVATE_KEY: text('GATEWAY_PRIVATE_KEY'),
+    GATEWAY_INTEGRITY_SECRET: text('GATEWAY_INTEGRITY_SECRET'),
+    GATEWAY_TIMEOUT_MS: integer(
+      'GATEWAY_TIMEOUT_MS',
+      DEFAULT_GATEWAY_TIMEOUT_MS,
+      1,
+      MAX_GATEWAY_TIMEOUT_MS,
+    ),
+    BASE_FEE_IN_CENTS: integer(
+      'BASE_FEE_IN_CENTS',
+      DEFAULT_BASE_FEE_IN_CENTS,
+      0,
+      MAX_FEE_IN_CENTS,
+    ),
+    DELIVERY_FEE_IN_CENTS: integer(
+      'DELIVERY_FEE_IN_CENTS',
+      DEFAULT_DELIVERY_FEE_IN_CENTS,
+      0,
+      MAX_FEE_IN_CENTS,
+    ),
   };
 
   if (errors.length > 0) {
