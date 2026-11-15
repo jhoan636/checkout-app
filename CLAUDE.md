@@ -11,7 +11,7 @@ Single-product store with a credit card checkout paid through an external paymen
 - TDD for business logic (domain rules, use cases, validators, reducers): write the failing test first, then the minimum code to pass, then refactor. Configuration, database adapters and styles are tested alongside the code.
 - Unit tests never touch a real database or the network; they use in-memory fakes of the ports.
 - All code, comments, docs and commit messages are in English.
-- Do not run `git commit` or `git push`. The repository owner commits; propose a Conventional Commits message instead (`feat(api): ...`, `feat(web): ...`, `test: ...`, `chore: ...`, `docs: ...`).
+- Commit and push each finished step on its own branch with a Conventional Commits message (`feat(api): ...`, `feat(web): ...`, `test: ...`, `chore: ...`, `docs: ...`). Never add co-author or tool attribution lines. Pull requests are opened and merged by the repository owner.
 - Work in small steps. Finish one step, run its tests, and stop for review before starting the next.
 
 ## API (`api/`)

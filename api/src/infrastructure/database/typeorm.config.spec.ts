@@ -10,6 +10,10 @@ const env: Env = {
   DB_PASSWORD: 'secret',
   DB_NAME: 'checkout',
   DB_SSL: false,
+  GATEWAY_BASE_URL: 'https://gateway.test/v1',
+  GATEWAY_PRIVATE_KEY: 'prv_test_key',
+  GATEWAY_INTEGRITY_SECRET: 'integrity_secret',
+  GATEWAY_TIMEOUT_MS: 10_000,
 };
 
 const configWith = (overrides: Partial<Env> = {}) =>

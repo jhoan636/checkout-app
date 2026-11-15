@@ -8,6 +8,10 @@ const validEnv = {
   DB_PASSWORD: 'secret',
   DB_NAME: 'checkout',
   DB_SSL: 'false',
+  GATEWAY_BASE_URL: 'https://gateway.test/v1',
+  GATEWAY_PRIVATE_KEY: 'prv_test_key',
+  GATEWAY_INTEGRITY_SECRET: 'integrity_secret',
+  GATEWAY_TIMEOUT_MS: '8000',
 };
 
 describe('validateEnv', () => {
@@ -20,6 +24,10 @@ describe('validateEnv', () => {
       DB_PASSWORD: 'secret',
       DB_NAME: 'checkout',
       DB_SSL: false,
+      GATEWAY_BASE_URL: 'https://gateway.test/v1',
+      GATEWAY_PRIVATE_KEY: 'prv_test_key',
+      GATEWAY_INTEGRITY_SECRET: 'integrity_secret',
+      GATEWAY_TIMEOUT_MS: 8000,
     });
   });
 
@@ -33,14 +41,18 @@ describe('validateEnv', () => {
     expect(validateEnv({ ...validEnv, DB_SSL: 'true' }).DB_SSL).toBe(true);
   });
 
-  it.each(['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'])(
-    'fails when %s is missing',
-    (name) => {
-      expect(() => validateEnv({ ...validEnv, [name]: undefined })).toThrow(
-        name,
-      );
-    },
-  );
+  it.each([
+    'DB_HOST',
+    'DB_PORT',
+    'DB_USER',
+    'DB_PASSWORD',
+    'DB_NAME',
+    'GATEWAY_BASE_URL',
+    'GATEWAY_PRIVATE_KEY',
+    'GATEWAY_INTEGRITY_SECRET',
+  ])('fails when %s is missing', (name) => {
+    expect(() => validateEnv({ ...validEnv, [name]: undefined })).toThrow(name);
+  });
 
   it('fails when a required variable is blank', () => {
     expect(() => validateEnv({ ...validEnv, DB_HOST: '   ' })).toThrow(
@@ -71,5 +83,41 @@ describe('validateEnv', () => {
     const env = { ...validEnv, DB_PASSWORD: 'secret', DB_PORT: 'abc' };
 
     expect(() => validateEnv(env)).not.toThrow(/secret/);
+  });
+
+  it('removes a trailing slash from the gateway URL', () => {
+    const env = { ...validEnv, GATEWAY_BASE_URL: 'https://gateway.test/v1/' };
+
+    expect(validateEnv(env).GATEWAY_BASE_URL).toBe('https://gateway.test/v1');
+  });
+
+  it.each(['http://gateway.test/v1', 'gateway.test', 'ftp://gateway.test'])(
+    'fails when the gateway URL is not HTTPS (%s)',
+    (url) => {
+      expect(() => validateEnv({ ...validEnv, GATEWAY_BASE_URL: url })).toThrow(
+        'GATEWAY_BASE_URL',
+      );
+    },
+  );
+
+  it('uses a default gateway timeout of 10 seconds', () => {
+    const env = { ...validEnv, GATEWAY_TIMEOUT_MS: undefined };
+
+    expect(validateEnv(env).GATEWAY_TIMEOUT_MS).toBe(10_000);
+  });
+
+  it.each(['abc', '0', '-5', '1.5', '120000'])(
+    'fails when the gateway timeout is not between 1 ms and 60 s (%s)',
+    (timeout) => {
+      expect(() =>
+        validateEnv({ ...validEnv, GATEWAY_TIMEOUT_MS: timeout }),
+      ).toThrow('GATEWAY_TIMEOUT_MS');
+    },
+  );
+
+  it('never includes the gateway keys in the error message', () => {
+    const env = { ...validEnv, DB_PORT: 'abc' };
+
+    expect(() => validateEnv(env)).not.toThrow(/prv_test_key|integrity_secret/);
   });
 });
