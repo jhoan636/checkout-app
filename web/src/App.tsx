@@ -1,3 +1,5 @@
+import { ProductPage } from './features/product/ProductPage'
+
 function App() {
   return (
     <div className="app">
@@ -6,6 +8,7 @@ function App() {
       </header>
       <main className="app__main">
         <h1 className="visually-hidden">Product Checkout</h1>
+        <ProductPage />
       </main>
     </div>
   )

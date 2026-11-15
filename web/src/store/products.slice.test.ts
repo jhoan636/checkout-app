@@ -137,3 +137,4 @@ describe('products slice', () => {
     })
   })
 })
+

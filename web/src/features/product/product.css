@@ -1,0 +1,311 @@
+/* Each product brings its own colour; the rest of the page stays neutral. */
+[data-product='aurora-headphones'] {
+  --tint: #ffd9c4;
+  --tint-deep: #ff6a2b;
+}
+[data-product='nimbus-keyboard'] {
+  --tint: #d5e6d3;
+  --tint-deep: #3f8f5b;
+}
+[data-product='pulse-watch'] {
+  --tint: #cfe3f7;
+  --tint-deep: #2f7fd6;
+}
+[data-product='orbit-speaker'] {
+  --tint: #e2d8f6;
+  --tint-deep: #7a55d6;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-product='aurora-headphones'] {
+    --tint: #5a3220;
+    --tint-deep: #ff8a52;
+  }
+  [data-product='nimbus-keyboard'] {
+    --tint: #24402b;
+    --tint-deep: #6fcf8f;
+  }
+  [data-product='pulse-watch'] {
+    --tint: #1d3a57;
+    --tint-deep: #6fb3f5;
+  }
+  [data-product='orbit-speaker'] {
+    --tint: #3a2c5e;
+    --tint-deep: #b094f5;
+  }
+}
+
+/* Mobile first: the photo on top, the details below, the action at the bottom. */
+.product {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 64px);
+}
+
+.product__stage {
+  margin: var(--space-3) var(--space-3) 0;
+  border-radius: var(--radius-l);
+  background: var(--tint);
+  overflow: hidden;
+  /* Short enough for the whole page to fit on an iPhone SE without scrolling. */
+  height: 36dvh;
+  min-height: 200px;
+  transition: background-color 0.3s ease;
+}
+
+.product__photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: photo-in 0.35s ease both;
+}
+
+@keyframes photo-in {
+  from {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+}
+
+.product__panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--gutter) 0;
+}
+
+.product__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 36px;
+}
+
+.product__name {
+  font-size: clamp(24px, 7vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+.product__description {
+  color: var(--ink-2);
+  max-width: 46ch;
+}
+
+.switcher {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.switcher__item {
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: var(--radius-s);
+  background: var(--tint);
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.switcher__photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.switcher__item[aria-pressed='true'] {
+  border-color: var(--ink);
+}
+
+.stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--ok-soft);
+  color: var(--ok);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.stock::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.stock[data-level='low'] {
+  background: color-mix(in srgb, var(--tint-deep) 16%, var(--surface));
+  color: var(--tint-deep);
+}
+
+.stock[data-level='none'] {
+  background: var(--fill);
+  color: var(--ink-2);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--fill);
+}
+
+.stepper__button {
+  /* 36px keeps the control comfortable for a thumb. */
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.stepper__button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.stepper__value {
+  min-width: 1.5ch;
+  text-align: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The price and the action stay within reach of the thumb. */
+.dock {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) 0
+    max(var(--space-4), env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+}
+
+.dock__price {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.dock__price strong {
+  font-size: 20px;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.dock__label {
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 50px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--fill);
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.button--primary {
+  flex: 1;
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 60dvh;
+  padding: var(--gutter);
+  text-align: center;
+  color: var(--ink-2);
+}
+
+.notice h2 {
+  color: var(--ink);
+  font-size: 22px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--line);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Wider screens: photo and details side by side. */
+@media (min-width: 820px) {
+  .product {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-6);
+    padding: var(--space-6) var(--gutter);
+  }
+
+  .product__stage {
+    flex: 1 1 50%;
+    margin: 0;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    max-height: 70dvh;
+  }
+
+  .product__panel {
+    flex: 1 1 50%;
+    padding: 0;
+    gap: var(--space-4);
+  }
+
+  .dock {
+    position: static;
+    margin-top: var(--space-4);
+    background: none;
+  }
+}
