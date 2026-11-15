@@ -2,7 +2,7 @@ import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { initialCheckoutState } from '../../store/checkout.slice'
 import type { CheckoutState } from '../../store/checkout.slice'
-import { headphones, keyboard, renderWithStore } from '../../test/render'
+import { headphones, readyProducts, renderWithStore } from '../../test/render'
 import { DetailsModal } from './DetailsModal'
 
 const now = new Date(2026, 10, 15)
@@ -18,7 +18,7 @@ const renderModal = (checkout: CheckoutState = onDetails) =>
   renderWithStore(<DetailsModal now={now} />, {
     state: {
       checkout,
-      products: { items: [headphones, keyboard], status: 'ready', error: null },
+      products: readyProducts(),
     },
   })
 

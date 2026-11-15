@@ -21,7 +21,7 @@ import {
 } from './../src/application/use-cases/create-transaction.use-case';
 import { err, ok } from './../src/domain/shared/result';
 
-const PRODUCT_ID = 'a3f1c2d4-5b6e-4f70-8a91-b2c3d4e5f604';
+const PRODUCT_ID = 'a3f1c2d4-5b6e-4f70-8a91-b2c3d4e5f601';
 
 const command: CreateTransactionCommand = {
   productId: PRODUCT_ID,
@@ -124,8 +124,8 @@ describe('Create transaction against the database (e2e)', () => {
     expect(stored).toMatchObject({
       status: 'APPROVED',
       quantity: 2,
-      unitPriceInCents: 27_900_000,
-      amountInCents: 27_900_000 * 2 + 300_000 + 1_200_000,
+      unitPriceInCents: 45_990_000,
+      amountInCents: 45_990_000 * 2 + 300_000 + 1_200_000,
       gatewayTransactionId: transaction.gatewayTransactionId,
     });
     expect(await stock()).toBe(initialStock - 2);

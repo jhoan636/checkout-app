@@ -16,23 +16,14 @@ export const headphones: Product = {
   imageUrl: '/products/aurora-headphones.webp',
 }
 
-export const keyboard: Product = {
-  id: 'prod-2',
-  name: 'Nimbus Mechanical Keyboard',
-  description: 'Compact keyboard with warm backlight.',
-  priceInCents: 38_950_000,
-  stock: 3,
-  imageUrl: '/products/nimbus-keyboard.webp',
-}
-
-/** Products already loaded, for screens that start after the catalogue. */
+/** The product already loaded, for screens that do not load it themselves. */
 export const readyProducts = (
-  items: Product[] = [headphones, keyboard],
+  items: Product[] = [headphones],
 ): ProductsState => ({ items, status: 'ready', error: null })
 
 /** A fake API: every call answers from memory unless a test overrides it. */
 export const fakeApi = (overrides: Partial<CheckoutApi> = {}): CheckoutApi => ({
-  getProducts: jest.fn().mockResolvedValue({ ok: true, data: [headphones, keyboard] }),
+  getProducts: jest.fn().mockResolvedValue({ ok: true, data: [headphones] }),
   getProduct: jest.fn().mockResolvedValue({ ok: true, data: headphones }),
   getPaymentSummary: jest.fn(),
   createTransaction: jest.fn(),

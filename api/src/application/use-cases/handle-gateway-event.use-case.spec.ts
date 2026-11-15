@@ -43,7 +43,7 @@ const setup = async () => {
     description: 'A product',
     priceInCents: 1_000_000,
     stock: 5,
-    imageUrl: '/p.svg',
+    imageUrl: '/p.webp',
   });
   const transactions = new InMemoryTransactionRepository(products);
   await transactions.createPending({

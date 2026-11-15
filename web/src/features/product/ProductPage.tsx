@@ -51,14 +51,10 @@ function QuantityStepper({
 export function ProductPage() {
   const dispatch = useAppDispatch()
   const { productId, quantity } = useAppSelector((state) => state.checkout)
-  const items = useAppSelector((state) => state.products.items)
+  // The store sells a single product.
+  const product = useAppSelector((state) => state.products.items.at(0))
 
-  // Without a choice, the first product that can be bought is shown.
-  const product =
-    items.find((item) => item.id === productId) ??
-    items.find((item) => item.stock > 0) ??
-    items[0]
-
+  // The checkout needs to know which product is being bought.
   useEffect(() => {
     if (product && product.id !== productId) {
       dispatch(productSelected(product.id))

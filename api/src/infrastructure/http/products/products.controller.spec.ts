@@ -12,7 +12,7 @@ const product: Product = {
   description: 'Over-ear headphones',
   priceInCents: 45_990_000,
   stock: 12,
-  imageUrl: '/products/aurora-headphones.svg',
+  imageUrl: '/products/aurora-headphones.webp',
 };
 
 const summary = {
@@ -44,7 +44,7 @@ const statusOf = async (action: Promise<unknown>): Promise<number> => {
 };
 
 describe('ProductsController', () => {
-  it('GET /products returns the catalogue with stock', async () => {
+  it('GET /products returns the products with stock', async () => {
     const { controller } = setup();
 
     await expect(controller.findAll()).resolves.toEqual([product]);

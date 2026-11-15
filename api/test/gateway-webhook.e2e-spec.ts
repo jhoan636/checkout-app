@@ -17,7 +17,7 @@ import {
 } from './../src/application/ports/transaction.repository';
 import { Transaction } from './../src/domain/transaction/transaction';
 
-const PRODUCT_ID = 'a3f1c2d4-5b6e-4f70-8a91-b2c3d4e5f603';
+const PRODUCT_ID = 'a3f1c2d4-5b6e-4f70-8a91-b2c3d4e5f601';
 const EMAIL = 'e2e-webhook@example.com';
 
 // Real PostgreSQL (`npm run db:up`) and real HTTP; the gateway is not called.
@@ -40,10 +40,10 @@ describe('Gateway webhook (e2e)', () => {
       reference: `ORDER-${id}`,
       productId: PRODUCT_ID,
       quantity: 1,
-      unitPriceInCents: 62_900_000,
+      unitPriceInCents: 45_990_000,
       baseFeeInCents: 300_000,
       deliveryFeeInCents: 1_200_000,
-      amountInCents: 64_400_000,
+      amountInCents: 47_490_000,
       currency: 'COP',
       status: 'PENDING',
       gatewayTransactionId: null,
