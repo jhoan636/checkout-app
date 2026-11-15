@@ -5,6 +5,8 @@ import { DatabaseModule } from './infrastructure/database/database.module';
 import { PersistenceModule } from './infrastructure/persistence/persistence.module';
 import { GatewayModule } from './infrastructure/gateway/gateway.module';
 import { UseCasesModule } from './infrastructure/wiring/use-cases.module';
+import { ProductsController } from './infrastructure/http/products/products.controller';
+import { TransactionsController } from './infrastructure/http/transactions/transactions.controller';
 import { GatewayWebhookController } from './infrastructure/http/webhooks/gateway-webhook.controller';
 import { HealthController } from './infrastructure/http/health/health.controller';
 
@@ -16,6 +18,11 @@ import { HealthController } from './infrastructure/http/health/health.controller
     GatewayModule,
     UseCasesModule,
   ],
-  controllers: [HealthController, GatewayWebhookController],
+  controllers: [
+    HealthController,
+    ProductsController,
+    TransactionsController,
+    GatewayWebhookController,
+  ],
 })
 export class AppModule {}

@@ -28,6 +28,11 @@ export interface CreateTransactionCommand {
   readonly installments: number;
   readonly acceptanceToken: string;
   readonly personalDataAuthToken: string;
+  /**
+   * Chosen by the client and sent again on a retry. It becomes the
+   * transaction id, so the same purchase can never be charged twice.
+   */
+  readonly idempotencyKey?: string;
 }
 
 export type CreateTransactionError =
@@ -55,6 +60,13 @@ export class CreateTransactionUseCase {
   async execute(
     command: CreateTransactionCommand,
   ): Promise<Result<Transaction, CreateTransactionError>> {
+    if (command.idempotencyKey) {
+      const existing = await this.transactions.findById(command.idempotencyKey);
+      if (existing) {
+        return ok(existing);
+      }
+    }
+
     const product = await this.products.findById(command.productId);
     if (!product) {
       return err('PRODUCT_NOT_FOUND');
@@ -74,7 +86,7 @@ export class CreateTransactionUseCase {
       return summary;
     }
 
-    const id = this.ids.uuid();
+    const id = command.idempotencyKey ?? this.ids.uuid();
     const created = createPendingTransaction({
       id,
       reference: `ORDER-${id}`,
@@ -93,11 +105,15 @@ export class CreateTransactionUseCase {
 
     // Stored as PENDING first: if the gateway call is lost, the purchase is
     // still on record and can be resolved later.
-    await this.transactions.createPending({
+    const stored = await this.transactions.createPending({
       transaction,
       customer: command.customer,
       delivery: command.delivery,
     });
+    if (stored === 'DUPLICATE') {
+      // A simultaneous request with the same key won; it does the charging.
+      return ok((await this.transactions.findById(id)) ?? transaction);
+    }
 
     const answer = await this.gateway.createCardTransaction({
       reference: transaction.reference,

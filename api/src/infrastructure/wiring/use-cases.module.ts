@@ -21,8 +21,10 @@ import {
 } from '../../application/ports/transaction.repository';
 import { TransactionSettlement } from '../../application/services/transaction-settlement';
 import { CreateTransactionUseCase } from '../../application/use-cases/create-transaction.use-case';
+import { GetOrderDetailsUseCase } from '../../application/use-cases/get-order-details.use-case';
 import { GetTransactionUseCase } from '../../application/use-cases/get-transaction.use-case';
 import { HandleGatewayEventUseCase } from '../../application/use-cases/handle-gateway-event.use-case';
+import { ProductQueries } from '../../application/use-cases/product-queries';
 import { Fees } from '../../domain/payment/payment-summary';
 import { Env } from '../config/env.validation';
 import { GatewayModule } from '../gateway/gateway.module';
@@ -94,6 +96,18 @@ import { SystemClock, UuidGenerator } from '../system/system-adapters';
       ) => new GetTransactionUseCase(transactions, gateway, settlement),
     },
     {
+      provide: ProductQueries,
+      inject: [PRODUCT_REPOSITORY, FEES],
+      useFactory: (products: ProductRepository, fees: Fees) =>
+        new ProductQueries(products, fees),
+    },
+    {
+      provide: GetOrderDetailsUseCase,
+      inject: [TRANSACTION_REPOSITORY],
+      useFactory: (transactions: TransactionRepository) =>
+        new GetOrderDetailsUseCase(transactions),
+    },
+    {
       provide: HandleGatewayEventUseCase,
       inject: [TRANSACTION_REPOSITORY, TransactionSettlement],
       useFactory: (
@@ -106,6 +120,8 @@ import { SystemClock, UuidGenerator } from '../system/system-adapters';
     CreateTransactionUseCase,
     GetTransactionUseCase,
     HandleGatewayEventUseCase,
+    ProductQueries,
+    GetOrderDetailsUseCase,
     TransactionSettlement,
   ],
 })

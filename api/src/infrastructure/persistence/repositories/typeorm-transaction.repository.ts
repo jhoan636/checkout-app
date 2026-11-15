@@ -1,11 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, MoreThanOrEqual } from 'typeorm';
+import { DataSource, MoreThanOrEqual, QueryFailedError } from 'typeorm';
 import {
+  CreateOutcome,
+  OrderDetails,
   PendingOrder,
   SettleOutcome,
   TransactionRepository,
 } from '../../../application/ports/transaction.repository';
+import { DeliveryStatus } from '../../../domain/delivery/delivery';
 import { Transaction } from '../../../domain/transaction/transaction';
 import { TransactionStatus } from '../../../domain/transaction/transaction-status';
 import { CustomerOrmEntity } from '../entities/customer.orm-entity';
@@ -30,12 +33,32 @@ const toDomain = (row: TransactionOrmEntity): Transaction => ({
   updatedAt: row.updatedAt,
 });
 
+const UNIQUE_VIOLATION = '23505';
+
+const isUniqueViolation = (error: unknown): boolean =>
+  error instanceof QueryFailedError &&
+  (error.driverError as { code?: string } | undefined)?.code ===
+    UNIQUE_VIOLATION;
+
 /** Adapter: implements the port with TypeORM and PostgreSQL. */
 @Injectable()
 export class TypeOrmTransactionRepository implements TransactionRepository {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
-  async createPending(order: PendingOrder): Promise<void> {
+  async createPending(order: PendingOrder): Promise<CreateOutcome> {
+    try {
+      await this.insertOrder(order);
+      return 'CREATED';
+    } catch (error) {
+      // The primary key is the idempotency key: a second insert is a retry.
+      if (isUniqueViolation(error)) {
+        return 'DUPLICATE';
+      }
+      throw error;
+    }
+  }
+
+  private async insertOrder(order: PendingOrder): Promise<void> {
     const { transaction, customer, delivery } = order;
 
     // One database transaction: the three rows are stored together or not at all.
@@ -80,6 +103,36 @@ export class TypeOrmTransactionRepository implements TransactionRepository {
       .getRepository(TransactionOrmEntity)
       .findOneBy({ id });
     return row ? toDomain(row) : null;
+  }
+
+  async findOrderById(id: string): Promise<OrderDetails | null> {
+    if (!isUuid(id)) {
+      return null;
+    }
+    const row = await this.dataSource
+      .getRepository(TransactionOrmEntity)
+      .findOne({ where: { id }, relations: { customer: true } });
+    const delivery = await this.dataSource
+      .getRepository(DeliveryOrmEntity)
+      .findOneBy({ transactionId: id });
+    if (!row?.customer || !delivery) {
+      return null;
+    }
+    return {
+      transaction: toDomain(row),
+      customer: {
+        fullName: row.customer.fullName,
+        email: row.customer.email,
+        phone: row.customer.phone,
+      },
+      delivery: {
+        addressLine: delivery.addressLine,
+        city: delivery.city,
+        region: delivery.region,
+        postalCode: delivery.postalCode,
+        status: delivery.status as DeliveryStatus,
+      },
+    };
   }
 
   async findByReference(reference: string): Promise<Transaction | null> {

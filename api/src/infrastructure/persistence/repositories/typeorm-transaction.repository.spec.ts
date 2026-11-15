@@ -1,4 +1,9 @@
-import { DataSource, EntityManager, MoreThanOrEqual } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  MoreThanOrEqual,
+  QueryFailedError,
+} from 'typeorm';
 import { PendingOrder } from '../../../application/ports/transaction.repository';
 import { Transaction } from '../../../domain/transaction/transaction';
 import { CustomerOrmEntity } from '../entities/customer.orm-entity';
@@ -60,6 +65,7 @@ const setup = () => {
     decrement: jest.fn().mockResolvedValue(affected(1)),
   };
   const ormRepository = {
+    findOne: jest.fn(),
     findOneBy: jest.fn(),
     update: jest.fn().mockResolvedValue(affected(1)),
   };
@@ -80,7 +86,7 @@ describe('TypeOrmTransactionRepository', () => {
     it('stores customer, transaction and delivery in one database transaction', async () => {
       const { repository, manager, dataSource } = setup();
 
-      await repository.createPending(order);
+      await expect(repository.createPending(order)).resolves.toBe('CREATED');
 
       expect(dataSource.transaction).toHaveBeenCalledTimes(1);
       expect(manager.save).toHaveBeenCalledWith(
@@ -105,6 +111,87 @@ describe('TypeOrmTransactionRepository', () => {
       await expect(repository.createPending(order)).rejects.toThrow(
         'duplicate reference',
       );
+    });
+  });
+
+  describe('createPending with a repeated id', () => {
+    it('reports DUPLICATE instead of failing', async () => {
+      const { repository, manager } = setup();
+      manager.insert.mockRejectedValue(
+        new QueryFailedError(
+          'INSERT',
+          [],
+          Object.assign(new Error('dup'), {
+            code: '23505',
+          }),
+        ),
+      );
+
+      await expect(repository.createPending(order)).resolves.toBe('DUPLICATE');
+    });
+
+    it('still fails for any other database error', async () => {
+      const { repository, manager } = setup();
+      manager.insert.mockRejectedValue(
+        new QueryFailedError(
+          'INSERT',
+          [],
+          Object.assign(new Error('fk'), {
+            code: '23503',
+          }),
+        ),
+      );
+
+      await expect(repository.createPending(order)).rejects.toBeInstanceOf(
+        QueryFailedError,
+      );
+    });
+  });
+
+  describe('findOrderById', () => {
+    const deliveryRow = Object.assign(new DeliveryOrmEntity(), {
+      transactionId: id,
+      ...order.delivery,
+      status: 'ASSIGNED',
+    });
+    const transactionRow = Object.assign(new TransactionOrmEntity(), {
+      ...approved,
+      customerId: 'customer-1',
+      customer: Object.assign(new CustomerOrmEntity(), {
+        id: 'customer-1',
+        ...order.customer,
+      }),
+    });
+
+    it('returns the transaction with its customer and delivery', async () => {
+      const { repository, ormRepository } = setup();
+      ormRepository.findOne.mockResolvedValue(transactionRow);
+      ormRepository.findOneBy.mockResolvedValue(deliveryRow);
+
+      await expect(repository.findOrderById(id)).resolves.toEqual({
+        transaction: approved,
+        customer: order.customer,
+        delivery: { ...order.delivery, status: 'ASSIGNED' },
+      });
+      expect(ormRepository.findOne).toHaveBeenCalledWith({
+        where: { id },
+        relations: { customer: true },
+      });
+    });
+
+    it('returns null when the transaction does not exist', async () => {
+      const { repository, ormRepository } = setup();
+      ormRepository.findOne.mockResolvedValue(null);
+      ormRepository.findOneBy.mockResolvedValue(null);
+
+      await expect(repository.findOrderById(id)).resolves.toBeNull();
+    });
+
+    it('returns null for an id that is not a UUID, without querying', async () => {
+      const { repository, ormRepository } = setup();
+
+      await expect(repository.findOrderById('nope')).resolves.toBeNull();
+      expect(ormRepository.findOne).not.toHaveBeenCalled();
     });
   });
 

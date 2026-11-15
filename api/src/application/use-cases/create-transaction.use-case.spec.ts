@@ -238,4 +238,45 @@ describe('CreateTransactionUseCase', () => {
       },
     );
   });
+
+  describe('idempotency', () => {
+    const key = 'client-key-1';
+
+    it('uses the idempotency key as the transaction id', async () => {
+      const { useCase } = setup();
+
+      const result = await useCase.execute({ ...command, idempotencyKey: key });
+
+      expect(result).toMatchObject({
+        value: { id: key, reference: `ORDER-${key}` },
+      });
+    });
+
+    it('charges once when the same request is sent twice', async () => {
+      const { useCase, gateway, products } = setup();
+      gateway.answer = gatewayAnswers('APPROVED');
+
+      const first = await useCase.execute({ ...command, idempotencyKey: key });
+      const second = await useCase.execute({ ...command, idempotencyKey: key });
+
+      expect(second).toEqual(first);
+      expect(gateway.charges).toHaveLength(1);
+      expect(products.stockOf('prod-1')).toBe(1);
+    });
+
+    it('does not charge when another request stored the same key first', async () => {
+      const { useCase, gateway, transactions } = setup();
+      const store = transactions.createPending.bind(transactions);
+      // Both requests pass the first check; the database lets only one in.
+      transactions.createPending = async (order) => {
+        await store(order);
+        return 'DUPLICATE';
+      };
+
+      const result = await useCase.execute({ ...command, idempotencyKey: key });
+
+      expect(result).toMatchObject({ value: { id: key, status: 'PENDING' } });
+      expect(gateway.charges).toHaveLength(0);
+    });
+  });
 });
