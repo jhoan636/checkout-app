@@ -32,7 +32,7 @@ export interface TransactionState {
   retryable: boolean
 }
 
-const initialState: TransactionState = {
+export const initialTransactionState: TransactionState = {
   id: null,
   transaction: null,
   phase: 'idle',
@@ -45,6 +45,8 @@ export const POLL_INTERVAL_MS = 2_000
 export const MAX_CHECKS = 10
 
 const FALLBACK_ERROR = 'The payment could not be processed.'
+const NEVER_SENT =
+  'The payment was not sent, so your card was not charged. You can start again.'
 
 interface PayFailure {
   message: string
@@ -125,8 +127,9 @@ export const pay = createAsyncThunk<Transaction, void, ThunkConfig>(
 )
 
 /**
- * Looks at a payment that already exists. It never fails the payment: if the
- * check does not get through, what was known stays as it was.
+ * Looks at a payment that may already exist, for example after a refresh.
+ * A check that does not get through changes nothing; only the API saying
+ * "there is no such payment" ends it.
  */
 export const checkPayment = createAsyncThunk<
   Transaction | null,
@@ -134,10 +137,17 @@ export const checkPayment = createAsyncThunk<
   ThunkConfig
 >(
   'transaction/check',
-  async (_, { getState, extra }) => {
+  async (_, { getState, extra, rejectWithValue }) => {
     const { id, transaction } = getState().transaction
     const result = await extra.api.getTransaction(id as string)
-    return result.ok ? waitForResult(result.data, extra) : transaction
+    if (result.ok) {
+      return waitForResult(result.data, extra)
+    }
+    if (result.error.status === 404) {
+      // The request to pay never reached the API, so nothing was charged.
+      return rejectWithValue({ message: NEVER_SENT, retryable: false })
+    }
+    return transaction
   },
   {
     condition: (_, { getState }) => {
@@ -155,7 +165,7 @@ const processing = (state: TransactionState) => {
 
 const transactionSlice = createSlice({
   name: 'transaction',
-  initialState,
+  initialState: initialTransactionState,
   reducers: {
     transactionStarted(state, action: PayloadAction<string>) {
       state.id = action.payload
@@ -163,7 +173,7 @@ const transactionSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(checkoutFinished, () => initialState)
+      .addCase(checkoutFinished, () => initialTransactionState)
       .addCase(pay.pending, processing)
       .addCase(pay.fulfilled, (state, action) => {
         state.transaction = action.payload
@@ -182,8 +192,14 @@ const transactionSlice = createSlice({
             ? 'settled'
             : 'unconfirmed'
       })
-      .addCase(checkPayment.rejected, (state) => {
-        state.phase = 'unconfirmed'
+      .addCase(checkPayment.rejected, (state, action) => {
+        if (action.payload) {
+          state.phase = 'failed'
+          state.error = action.payload.message
+          state.retryable = action.payload.retryable
+        } else {
+          state.phase = 'unconfirmed'
+        }
       })
   },
 })

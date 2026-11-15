@@ -333,6 +333,21 @@ describe('transaction slice', () => {
       expect(store.getState().transaction.phase).toBe('unconfirmed')
     })
 
+    it('ends a payment the API never received, which was never charged', async () => {
+      const getTransaction = jest.fn().mockResolvedValue(answer(pending))
+      const { store } = await unconfirmed(getTransaction)
+      getTransaction.mockResolvedValue(failure(404, 'The transaction does not exist.'))
+
+      await store.dispatch(checkPayment())
+
+      expect(store.getState().transaction).toMatchObject({
+        phase: 'failed',
+        error:
+          'The payment was not sent, so your card was not charged. You can start again.',
+        retryable: false,
+      })
+    })
+
     it('does nothing when there is no payment to check', async () => {
       const { store, api } = setup()
 
