@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/jhoan636/checkout-app/actions/workflows/ci.yml/badge.svg)](https://github.com/jhoan636/checkout-app/actions/workflows/ci.yml)
 
-A small store with a credit card checkout. The customer picks a product, enters card and delivery data, reviews a payment summary, pays through an external payment gateway (sandbox) and gets the final status. Stock is updated once the payment is resolved.
+A store that sells one product with a credit card checkout. The customer sees the product and its stock, enters card and delivery data, reviews a payment summary, pays through an external payment gateway (sandbox) and gets the final status. Stock is updated once the payment is resolved.
 
 > Work in progress. The API is complete. The web app has the first two screens; the status of every part is listed in [Progress](#progress).
 
