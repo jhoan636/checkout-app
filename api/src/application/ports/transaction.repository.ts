@@ -26,6 +26,8 @@ export interface TransactionRepository {
 
   findById(id: string): Promise<Transaction | null>;
 
+  findByReference(reference: string): Promise<Transaction | null>;
+
   assignGatewayId(
     id: string,
     gatewayTransactionId: string,

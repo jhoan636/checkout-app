@@ -66,6 +66,13 @@ export class InMemoryTransactionRepository implements TransactionRepository {
     return Promise.resolve(this.orders.get(id)?.transaction ?? null);
   }
 
+  findByReference(reference: string): Promise<Transaction | null> {
+    const order = [...this.orders.values()].find(
+      (candidate) => candidate.transaction.reference === reference,
+    );
+    return Promise.resolve(order?.transaction ?? null);
+  }
+
   assignGatewayId(
     id: string,
     gatewayTransactionId: string,
