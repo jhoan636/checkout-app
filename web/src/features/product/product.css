@@ -1,0 +1,332 @@
+/* Mobile first: a list of products and a bar that always shows the total. */
+.store {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--gutter) 0;
+}
+
+.store__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.store__head h2 {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.store__head p {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.store__note {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-s);
+  background: var(--note);
+  color: var(--note-ink);
+  font-size: 13px;
+}
+
+.store__list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.card[data-selected='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.card[data-sold-out='true'] {
+  opacity: 0.6;
+}
+
+.card__main {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-3);
+  cursor: pointer;
+}
+
+.card[data-sold-out='true'] .card__main {
+  cursor: not-allowed;
+}
+
+/* The radio stays in the page for keyboards and screen readers. */
+.card__radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.card__main:has(.card__radio:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-m);
+}
+
+.card__frame {
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-s);
+  background: var(--fill);
+  overflow: hidden;
+}
+
+.card__photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.card__name {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.card__description {
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-1);
+}
+
+.card__price {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.card__quantity {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--ok-soft);
+  color: var(--ok);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.stock::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.stock[data-level='low'] {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.stock[data-level='none'] {
+  background: var(--fill);
+  color: var(--ink-2);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.stepper__button {
+  /* 40px keeps the control comfortable for a thumb. */
+  width: 40px;
+  height: 36px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.stepper__button:disabled {
+  color: var(--ink-2);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.stepper__value {
+  min-width: 2.5ch;
+  text-align: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Always visible, like the total bar of a shopping app. */
+.bar {
+  position: sticky;
+  bottom: 0;
+  margin: var(--space-2) calc(var(--gutter) * -1) 0;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.bar__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--gutter)
+    max(var(--space-3), env(safe-area-inset-bottom, 0px));
+}
+
+.bar__total {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.bar__total span {
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.bar__total strong {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: 0 var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  transition:
+    background-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.button--primary {
+  flex: 1;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.button--primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 60dvh;
+  padding: var(--gutter);
+  text-align: center;
+  color: var(--ink-2);
+}
+
+.notice h2 {
+  color: var(--ink);
+  font-size: 20px;
+}
+
+.notice .button--primary {
+  flex: none;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tablets and up: two columns of products. */
+@media (min-width: 720px) {
+  .store__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .card__main {
+    grid-template-columns: 132px minmax(0, 1fr);
+  }
+
+  .bar__inner {
+    justify-content: flex-end;
+  }
+
+  .bar .button--primary {
+    flex: 0 0 280px;
+  }
+}

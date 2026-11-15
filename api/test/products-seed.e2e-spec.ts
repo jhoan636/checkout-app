@@ -38,6 +38,15 @@ describe('Seeded products (e2e)', () => {
     );
   });
 
+  it('points every product to its compressed photo', async () => {
+    const all = await products.findAll();
+
+    expect(all.length).toBeGreaterThan(0);
+    for (const product of all) {
+      expect(product.imageUrl).toMatch(/^\/products\/[a-z-]+\.webp$/);
+    }
+  });
+
   it('reads prices as integer cents and stock as a number', async () => {
     const product = await products.findById(
       'a3f1c2d4-5b6e-4f70-8a91-b2c3d4e5f601',
