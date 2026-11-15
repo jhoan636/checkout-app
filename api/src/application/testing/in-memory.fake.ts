@@ -7,6 +7,8 @@ import {
 import { ProductRepository } from '../ports/product.repository';
 import { Clock, IdGenerator } from '../ports/system';
 import {
+  CreateOutcome,
+  OrderDetails,
   PendingOrder,
   SettleOutcome,
   TransactionRepository,
@@ -56,10 +58,26 @@ export class InMemoryTransactionRepository implements TransactionRepository {
 
   constructor(private readonly products: InMemoryProductRepository) {}
 
-  createPending(order: PendingOrder): Promise<void> {
+  createPending(order: PendingOrder): Promise<CreateOutcome> {
+    if (this.orders.has(order.transaction.id)) {
+      return Promise.resolve('DUPLICATE');
+    }
     this.orders.set(order.transaction.id, order);
     this.deliveries.set(order.transaction.id, 'PENDING');
-    return Promise.resolve();
+    return Promise.resolve('CREATED');
+  }
+
+  findOrderById(id: string): Promise<OrderDetails | null> {
+    const order = this.orders.get(id);
+    const status = this.deliveries.get(id);
+    if (!order || !status) {
+      return Promise.resolve(null);
+    }
+    return Promise.resolve({
+      transaction: order.transaction,
+      customer: order.customer,
+      delivery: { ...order.delivery, status },
+    });
   }
 
   findById(id: string): Promise<Transaction | null> {
