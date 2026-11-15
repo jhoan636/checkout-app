@@ -10,6 +10,7 @@ import { config } from './config'
 import { createAppStore } from './store/store'
 import './styles/tokens.css'
 import './styles/base.css'
+import './styles/components.css'
 
 const store = createAppStore(createCheckoutApi(createHttp(config.apiUrl)))
 
