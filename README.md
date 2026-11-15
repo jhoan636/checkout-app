@@ -24,6 +24,8 @@ Each app is independent: its own `package.json`, tests and deployment.
 4. **Final status**: result of the payment.
 5. **Back to the product page** with the updated stock.
 
+The catalogue is seeded with four dummy products. Each purchase is for one product and one or more of its units: there is no cart, so a transaction always refers to a single product, as the checkout flow describes.
+
 ## Progress
 
 | Part | Status |
