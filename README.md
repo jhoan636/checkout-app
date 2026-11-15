@@ -18,13 +18,13 @@ Each app is independent: its own `package.json`, tests and deployment.
 
 ## Checkout flow
 
-1. **Product page**: the store lists the products; choosing one opens its page with photo, description, price, units in stock and the payment button.
+1. **Product page**: photo, description, price, units in stock and the payment button.
 2. **Credit card and delivery info**: a modal with card and delivery fields.
 3. **Payment summary**: product amount, base fee and delivery fee, with the payment button.
 4. **Final status**: result of the payment.
 5. **Back to the product page** with the updated stock.
 
-The catalogue is seeded with four dummy products. Each purchase is for one product and one or more of its units: there is no cart, so a transaction always refers to a single product, as the checkout flow describes.
+The database is seeded with four dummy products. The app opens on the page of one product; the others are listed below it and can be shown in its place. Each purchase is for one product and one or more of its units: there is no cart, so a transaction always refers to a single product.
 
 ## Progress
 
