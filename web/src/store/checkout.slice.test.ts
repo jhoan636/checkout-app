@@ -1,4 +1,5 @@
 import {
+  checkoutFinished,
   checkoutReducer,
   checkoutStarted,
   detailsClosed,
@@ -58,10 +59,25 @@ describe('checkout slice', () => {
     })
   })
 
-  it('does not change the product in the middle of a payment', () => {
-    const paying = { ...initial, step: 'details' as const, productId: 'prod-1' }
+  it('starts the checkout over when it was about another product', () => {
+    const stale = {
+      ...initial,
+      ...details,
+      step: 'details' as const,
+      productId: 'prod-1',
+      quantity: 3,
+    }
 
-    expect(checkoutReducer(paying, productSelected('prod-2'))).toEqual(paying)
+    expect(checkoutReducer(stale, productSelected('prod-2'))).toEqual({
+      ...initial,
+      productId: 'prod-2',
+    })
+  })
+
+  it('does not touch a payment whose status is being shown', () => {
+    const paid = { ...initial, step: 'status' as const, productId: 'prod-1' }
+
+    expect(checkoutReducer(paid, productSelected('prod-2'))).toEqual(paid)
   })
 
   it('changes the quantity', () => {
@@ -229,6 +245,30 @@ describe('checkout slice', () => {
       )
 
       expect(state.step).toBe('details')
+    })
+  })
+
+  describe('finishing', () => {
+    const onStatus = {
+      ...initial,
+      ...details,
+      step: 'status' as const,
+      productId: 'prod-1',
+      quantity: 3,
+      cardToken: 'tok_test_1',
+    }
+
+    it('goes back to the product and forgets the purchase', () => {
+      expect(checkoutReducer(onStatus, checkoutFinished())).toEqual({
+        ...initial,
+        productId: 'prod-1',
+      })
+    })
+
+    it('does not finish a checkout that is still in progress', () => {
+      const onSummary = { ...onStatus, step: 'summary' as const }
+
+      expect(checkoutReducer(onSummary, checkoutFinished())).toEqual(onSummary)
     })
   })
 })

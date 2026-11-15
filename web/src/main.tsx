@@ -8,15 +8,22 @@ import { createPaymentGateway } from './api/gateway'
 import { createHttp } from './api/http'
 import App from './App.tsx'
 import { config } from './config'
-import { createAppStore } from './store/store'
+import { newId, wait } from './lib/runtime'
+import { startStore } from './store/boot'
+import { browserStorage } from './store/persistence'
 import './styles/tokens.css'
 import './styles/base.css'
 import './styles/components.css'
 
-const store = createAppStore({
-  api: createCheckoutApi(createHttp(config.apiUrl)),
-  gateway: createPaymentGateway(config.gatewayUrl, config.gatewayPublicKey),
-})
+const store = startStore(
+  {
+    api: createCheckoutApi(createHttp(config.apiUrl)),
+    gateway: createPaymentGateway(config.gatewayUrl, config.gatewayPublicKey),
+    newId,
+    wait,
+  },
+  browserStorage(),
+)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

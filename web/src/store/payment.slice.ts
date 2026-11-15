@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import type { Acceptance } from '../api/gateway'
 import type { PaymentSummary } from '../api/types'
+import { checkoutFinished } from './checkout.slice'
 import type { CheckoutState } from './checkout.slice'
 import type { Services } from './services'
 
@@ -55,6 +56,7 @@ const paymentSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
+      .addCase(checkoutFinished, () => initialState)
       .addCase(loadQuote.pending, () => ({
         ...initialState,
         status: 'loading' as const,

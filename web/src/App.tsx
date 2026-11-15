@@ -1,6 +1,7 @@
 import { DetailsModal } from './features/details/DetailsModal'
 import { ProductPage } from './features/product/ProductPage'
 import { ProductsGate } from './features/product/ProductsGate'
+import { StatusPage } from './features/status/StatusPage'
 import { SummaryBackdrop } from './features/summary/SummaryBackdrop'
 import { useAppSelector } from './store/hooks'
 
@@ -26,7 +27,7 @@ function App() {
       <main className="app__main">
         <h1 className="visually-hidden">Product Checkout</h1>
         <ProductsGate>
-          <ProductPage />
+          {step === 'status' ? <StatusPage /> : <ProductPage />}
           {step === 'details' && <DetailsModal />}
           {step === 'summary' && <SummaryBackdrop />}
         </ProductsGate>

@@ -10,4 +10,8 @@ export interface Services {
   api: CheckoutApi
   /** The payment gateway, used directly only to tokenize the card. */
   gateway: PaymentGateway
+  /** A new unique id (UUID). It identifies a purchase before it is sent. */
+  newId: () => string
+  /** Resolves after the given milliseconds; tests make it instant. */
+  wait: (milliseconds: number) => Promise<void>
 }

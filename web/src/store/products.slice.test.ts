@@ -1,7 +1,7 @@
 import type { CheckoutApi } from '../api/checkout-api'
-import type { PaymentGateway } from '../api/gateway'
 import type { Product } from '../api/types'
-import { loadProducts, selectProductById, stockChanged } from './products.slice'
+import { loadProducts, selectProductById } from './products.slice'
+import { fakeServices } from '../test/render'
 import { createAppStore } from './store'
 
 const headphones: Product = {
@@ -17,7 +17,7 @@ const apiWith = (getProducts: CheckoutApi['getProducts']) =>
   ({ getProducts }) as CheckoutApi
 
 const storeWith = (api: CheckoutApi) =>
-  createAppStore({ api, gateway: {} as PaymentGateway })
+  createAppStore(fakeServices({ api }))
 
 describe('products slice', () => {
   it('starts empty and idle', () => {
@@ -104,28 +104,6 @@ describe('products slice', () => {
 
     expect(selectProductById(store.getState(), 'prod-1')).toEqual(headphones)
     expect(selectProductById(store.getState(), 'nope')).toBeUndefined()
-  })
-
-  it('updates the stock of one product after a purchase', async () => {
-    const store = storeWith(
-      apiWith(() => Promise.resolve({ ok: true, data: [headphones] })),
-    )
-    await store.dispatch(loadProducts())
-
-    store.dispatch(stockChanged({ id: 'prod-1', stock: 10 }))
-
-    expect(selectProductById(store.getState(), 'prod-1')?.stock).toBe(10)
-  })
-
-  it('ignores a stock change for a product it does not have', async () => {
-    const store = storeWith(
-      apiWith(() => Promise.resolve({ ok: true, data: [headphones] })),
-    )
-    await store.dispatch(loadProducts())
-
-    store.dispatch(stockChanged({ id: 'nope', stock: 1 }))
-
-    expect(store.getState().products.items).toEqual([headphones])
   })
 
   it('shows a general message when loading fails unexpectedly', async () => {

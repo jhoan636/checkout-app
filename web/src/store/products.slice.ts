@@ -1,5 +1,4 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import type { PayloadAction } from '@reduxjs/toolkit'
 import type { Product } from '../api/types'
 import type { Services } from './services'
 
@@ -24,14 +23,7 @@ export const loadProducts = createAsyncThunk<
 const productsSlice = createSlice({
   name: 'products',
   initialState,
-  reducers: {
-    stockChanged(state, action: PayloadAction<{ id: string; stock: number }>) {
-      const product = state.items.find((item) => item.id === action.payload.id)
-      if (product) {
-        product.stock = action.payload.stock
-      }
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
       .addCase(loadProducts.pending, (state) => {
@@ -49,7 +41,6 @@ const productsSlice = createSlice({
   },
 })
 
-export const { stockChanged } = productsSlice.actions
 export const productsReducer = productsSlice.reducer
 
 export const selectProductById = (

@@ -1,5 +1,11 @@
-import { acceptance, fakeApi, fakeGateway, summaryForOne } from '../test/render'
-import { initialCheckoutState } from './checkout.slice'
+import {
+  acceptance,
+  fakeApi,
+  fakeGateway,
+  fakeServices,
+  summaryForOne,
+} from '../test/render'
+import { checkoutFinished, initialCheckoutState } from './checkout.slice'
 import { loadQuote } from './payment.slice'
 import { createAppStore } from './store'
 
@@ -12,7 +18,7 @@ const setup = (services: Partial<Parameters<typeof createAppStore>[0]> = {}) => 
   const api = services.api ?? fakeApi()
   const gateway = services.gateway ?? fakeGateway()
   const store = createAppStore(
-    { api, gateway },
+    fakeServices({ api, gateway }),
     {
       checkout: { ...initialCheckoutState, productId: 'prod-1', quantity: 2 },
     },
@@ -111,7 +117,7 @@ describe('payment slice', () => {
 
   it('does not ask anything without a product', async () => {
     const api = fakeApi()
-    const store = createAppStore({ api, gateway: fakeGateway() })
+    const store = createAppStore(fakeServices({ api }))
 
     await store.dispatch(loadQuote())
 
@@ -131,6 +137,19 @@ describe('payment slice', () => {
     expect(store.getState().payment).toMatchObject({
       status: 'failed',
       error: 'The payment summary could not be loaded.',
+    })
+  })
+
+  it('forgets the amounts when the checkout ends', async () => {
+    const { store } = setup()
+    await store.dispatch(loadQuote())
+
+    store.dispatch(checkoutFinished())
+
+    expect(store.getState().payment).toMatchObject({
+      summary: null,
+      acceptance: null,
+      status: 'idle',
     })
   })
 })

@@ -4,11 +4,13 @@ import { checkoutReducer } from './checkout.slice'
 import { paymentReducer } from './payment.slice'
 import { productsReducer } from './products.slice'
 import type { Services } from './services'
+import { transactionReducer } from './transaction.slice'
 
 const rootReducer = combineReducers({
   products: productsReducer,
   checkout: checkoutReducer,
   payment: paymentReducer,
+  transaction: transactionReducer,
 })
 
 export type RootState = ReturnType<typeof rootReducer>

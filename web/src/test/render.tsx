@@ -3,8 +3,9 @@ import type { ReactElement, ReactNode } from 'react'
 import { Provider } from 'react-redux'
 import type { CheckoutApi } from '../api/checkout-api'
 import type { Acceptance, PaymentGateway } from '../api/gateway'
-import type { PaymentSummary, Product } from '../api/types'
+import type { PaymentSummary, Product, Transaction } from '../api/types'
 import type { ProductsState } from '../store/products.slice'
+import type { Services } from '../store/services'
 import { createAppStore } from '../store/store'
 import type { RootState } from '../store/store'
 
@@ -39,6 +40,22 @@ export const acceptance: Acceptance = {
   personalDataUrl: 'https://gateway.test/personal-data.pdf',
 }
 
+/** One unit of the headphones, already paid. */
+export const approvedTransaction: Transaction = {
+  id: 'b6f1c2d4-0000-4000-8000-000000000001',
+  reference: 'ORDER-TEST-0001',
+  status: 'APPROVED',
+  productId: headphones.id,
+  quantity: 1,
+  unitPriceInCents: 45_990_000,
+  baseFeeInCents: 300_000,
+  deliveryFeeInCents: 1_200_000,
+  amountInCents: 47_490_000,
+  currency: 'COP',
+  createdAt: '2026-11-15T20:00:00.000Z',
+  updatedAt: '2026-11-15T20:00:05.000Z',
+}
+
 /** A fake API: every call answers from memory unless a test overrides it. */
 export const fakeApi = (overrides: Partial<CheckoutApi> = {}): CheckoutApi => ({
   getProducts: jest.fn().mockResolvedValue({ ok: true, data: [headphones] }),
@@ -46,8 +63,12 @@ export const fakeApi = (overrides: Partial<CheckoutApi> = {}): CheckoutApi => ({
   getPaymentSummary: jest
     .fn()
     .mockResolvedValue({ ok: true, data: summaryForOne }),
-  createTransaction: jest.fn(),
-  getTransaction: jest.fn(),
+  createTransaction: jest
+    .fn()
+    .mockResolvedValue({ ok: true, data: approvedTransaction }),
+  getTransaction: jest
+    .fn()
+    .mockResolvedValue({ ok: true, data: approvedTransaction }),
   ...overrides,
 })
 
@@ -62,7 +83,16 @@ export const fakeGateway = (
   ...overrides,
 })
 
-/** Renders a component connected to a real store, a fake API and a fake gateway. */
+/** Everything the store needs, faked: no network, no waiting, a known id. */
+export const fakeServices = (overrides: Partial<Services> = {}): Services => ({
+  api: fakeApi(),
+  gateway: fakeGateway(),
+  newId: jest.fn(() => approvedTransaction.id),
+  wait: jest.fn().mockResolvedValue(undefined),
+  ...overrides,
+})
+
+/** Renders a component connected to a real store and fake services. */
 export const renderWithStore = (
   ui: ReactElement,
   options: {
@@ -71,12 +101,15 @@ export const renderWithStore = (
     state?: Partial<RootState>
   } = {},
 ) => {
-  const api = options.api ?? fakeApi()
-  const gateway = options.gateway ?? fakeGateway()
-  const store = createAppStore({ api, gateway }, options.state)
+  const services = fakeServices({
+    ...(options.api ? { api: options.api } : {}),
+    ...(options.gateway ? { gateway: options.gateway } : {}),
+  })
+  const { api, gateway } = services
+  const store = createAppStore(services, options.state)
   // As a wrapper, the store also survives a `rerender` of the component.
   const wrapper = ({ children }: { children: ReactNode }) => (
     <Provider store={store}>{children}</Provider>
   )
-  return { store, api, gateway, ...render(ui, { wrapper }) }
+  return { store, api, gateway, services, ...render(ui, { wrapper }) }
 }
