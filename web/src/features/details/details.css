@@ -1,0 +1,272 @@
+/* Mobile first: the form takes the whole screen, like a sheet. */
+.sheet {
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.sheet::backdrop {
+  background: var(--scrim);
+}
+
+/* The page behind does not scroll while the form is open. */
+html:has(.sheet[open]) {
+  overflow: hidden;
+}
+
+.sheet__form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--gutter);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.sheet__head h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.sheet__head p {
+  margin-top: 2px;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.sheet__close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--fill);
+  color: var(--ink);
+}
+
+.sheet__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--gutter);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sheet__foot {
+  display: flex;
+  padding: var(--space-3) var(--gutter)
+    max(var(--space-3), env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+}
+
+.group h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.group__number {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.group__pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.group__hint {
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.field label {
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.field__control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.field input {
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  /* 16px stops iOS from zooming into the field. */
+  font-size: 16px;
+  transition: border-color 0.15s ease;
+}
+
+.field input::placeholder {
+  color: var(--ink-2);
+  opacity: 0.6;
+}
+
+.field input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+  border-color: var(--accent);
+}
+
+.field[data-invalid='true'] input {
+  border-color: var(--bad);
+}
+
+.field__control .brand {
+  position: absolute;
+  right: var(--space-2);
+  pointer-events: none;
+}
+
+.field__control:has(.brand) input {
+  padding-right: 60px;
+}
+
+.field__error {
+  color: var(--bad);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.brand {
+  width: 44px;
+  height: 28px;
+  flex: none;
+  border-radius: 4px;
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1.75 / 1;
+  margin: 0 auto;
+  padding: var(--space-4);
+  border-radius: var(--radius-m);
+  background: linear-gradient(135deg, var(--card-a), var(--card-b));
+  color: #fff;
+  box-shadow: var(--shadow-float);
+}
+
+.preview__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+}
+
+.preview__chip {
+  width: 36px;
+  height: 26px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #e8d28a, #b9984a);
+}
+
+.preview__number {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.preview__bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.preview__bottom span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tablets and up: a centred window over the store. */
+@media (min-width: 720px) {
+  .sheet {
+    width: min(560px, calc(100% - 48px));
+    height: auto;
+    max-height: min(820px, calc(100dvh - 48px));
+    margin: auto;
+    border-radius: var(--radius-l);
+    box-shadow: var(--shadow-float);
+    overflow: hidden;
+  }
+
+  .sheet__form {
+    max-height: inherit;
+  }
+
+  .sheet__foot {
+    justify-content: flex-end;
+  }
+
+  .sheet__foot .button--primary {
+    flex: 0 0 220px;
+  }
+}

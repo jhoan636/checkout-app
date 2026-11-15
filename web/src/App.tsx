@@ -1,6 +1,10 @@
+import { DetailsModal } from './features/details/DetailsModal'
 import { ProductPage } from './features/product/ProductPage'
+import { useAppSelector } from './store/hooks'
 
 function App() {
+  const step = useAppSelector((state) => state.checkout.step)
+
   return (
     <div className="app">
       <header className="app__bar">
@@ -20,6 +24,7 @@ function App() {
       <main className="app__main">
         <h1 className="visually-hidden">Product Checkout</h1>
         <ProductPage />
+        {step === 'details' && <DetailsModal />}
       </main>
     </div>
   )
