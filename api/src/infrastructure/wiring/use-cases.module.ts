@@ -21,6 +21,7 @@ import {
 } from '../../application/ports/transaction.repository';
 import { TransactionSettlement } from '../../application/services/transaction-settlement';
 import { CreateTransactionUseCase } from '../../application/use-cases/create-transaction.use-case';
+import { GetTransactionUseCase } from '../../application/use-cases/get-transaction.use-case';
 import { Fees } from '../../domain/payment/payment-summary';
 import { Env } from '../config/env.validation';
 import { GatewayModule } from '../gateway/gateway.module';
@@ -82,7 +83,20 @@ import { SystemClock, UuidGenerator } from '../system/system-adapters';
           fees,
         ),
     },
+    {
+      provide: GetTransactionUseCase,
+      inject: [TRANSACTION_REPOSITORY, PAYMENT_GATEWAY, TransactionSettlement],
+      useFactory: (
+        transactions: TransactionRepository,
+        gateway: PaymentGateway,
+        settlement: TransactionSettlement,
+      ) => new GetTransactionUseCase(transactions, gateway, settlement),
+    },
   ],
-  exports: [CreateTransactionUseCase, TransactionSettlement],
+  exports: [
+    CreateTransactionUseCase,
+    GetTransactionUseCase,
+    TransactionSettlement,
+  ],
 })
 export class UseCasesModule {}
