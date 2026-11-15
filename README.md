@@ -18,7 +18,7 @@ Each app is independent: its own `package.json`, tests and deployment.
 
 ## Checkout flow
 
-1. **Product page**: catalogue with photo, description, price and units in stock.
+1. **Product page**: the store lists the products; choosing one opens its page with photo, description, price, units in stock and the payment button.
 2. **Credit card and delivery info**: a modal with card and delivery fields.
 3. **Payment summary**: product amount, base fee and delivery fee, with the payment button.
 4. **Final status**: result of the payment.
