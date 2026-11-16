@@ -276,12 +276,12 @@ describe('persistence', () => {
       jest.restoreAllMocks()
     })
 
-    it('is the storage of the browser', () => {
-      expect(browserStorage()).toBe(window.localStorage)
+    it('is the storage of the tab, which the browser clears on closing it', () => {
+      expect(browserStorage()).toBe(window.sessionStorage)
     })
 
     it('is nothing when the browser blocks storage', () => {
-      jest.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+      jest.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {
         throw new Error('The operation is insecure.')
       })
 

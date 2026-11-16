@@ -5,7 +5,9 @@ import type { AppStore, RootState } from './store'
 import { initialTransactionState } from './transaction.slice'
 
 /**
- * Progress of the checkout kept in the browser, so a refresh does not lose it.
+ * Progress of the checkout kept in the browser tab, so a refresh does not
+ * lose it. It lives in `sessionStorage`: the browser deletes it when the tab
+ * is closed, so contact details are not left behind on a shared computer.
  *
  * It holds only what is needed to continue: where the customer was, what
  * they were buying, their contact details and the id of a payment already
@@ -28,10 +30,10 @@ export const SNAPSHOT_TTL_MS = 30 * 60 * 1000
 
 export type SnapshotStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
-/** Some browsers throw on reading `localStorage` when storage is blocked. */
+/** Some browsers throw on reading `sessionStorage` when storage is blocked. */
 export const browserStorage = (): SnapshotStorage | undefined => {
   try {
-    return window.localStorage
+    return window.sessionStorage
   } catch {
     return undefined
   }
