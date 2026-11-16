@@ -1,0 +1,372 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Product Checkout. A static web app on S3 behind CloudFront, and an API in
+  Docker on one small EC2 instance behind a second CloudFront distribution,
+  with a PostgreSQL database on RDS. Deleting the stack removes everything.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: At least two subnets in different availability zones.
+  CloudFrontPrefixListId:
+    Type: String
+    Description: Managed prefix list with the addresses CloudFront calls from.
+  RepositoryUrl:
+    Type: String
+  GitRef:
+    Type: String
+    Default: main
+  GatewayHost:
+    Type: String
+    Description: Host of the payment gateway, for the content security policy of the web app.
+  LatestAmi:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Resources:
+  # ---------------------------------------------------------------- network
+  ApiSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: API. Reachable only from CloudFront.
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          SourcePrefixListId: !Ref CloudFrontPrefixListId
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Database. Reachable only from the API.
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref ApiSecurityGroup
+
+  # --------------------------------------------------------------- database
+  DatabaseSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Password of the checkout database.
+      GenerateSecretString:
+        SecretStringTemplate: '{"username":"checkout"}'
+        GenerateStringKey: password
+        PasswordLength: 32
+        ExcludePunctuation: true
+
+  DatabaseSubnets:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnets of the checkout database.
+      SubnetIds: !Ref SubnetIds
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      Engine: postgres
+      EngineVersion: '17'
+      DBInstanceClass: db.t4g.micro
+      AllocatedStorage: '20'
+      StorageType: gp3
+      StorageEncrypted: true
+      DBName: checkout
+      MasterUsername: checkout
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DatabaseSecret}:SecretString:password}}'
+      DBSubnetGroupName: !Ref DatabaseSubnets
+      VPCSecurityGroups:
+        - !Ref DatabaseSecurityGroup
+      PubliclyAccessible: false
+      MultiAZ: false
+      BackupRetentionPeriod: 0
+      DeleteAutomatedBackups: true
+      DeletionProtection: false
+      AutoMinorVersionUpgrade: true
+
+  # -------------------------------------------------------------------- API
+  ApiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # Session Manager instead of SSH: no key pair and no port 22.
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: read-configuration
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ssm:GetParametersByPath
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/checkout/gateway
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/checkout/gateway/*
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref DatabaseSecret
+              - Effect: Allow
+                Action: kms:Decrypt
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub ssm.${AWS::Region}.amazonaws.com
+
+  ApiProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref ApiRole
+
+  # A fixed address, so the origin of CloudFront survives a restart.
+  ApiAddress:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  ApiAddressAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt ApiAddress.AllocationId
+      InstanceId: !Ref ApiInstance
+
+  ApiInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestAmi
+      InstanceType: t3.micro
+      IamInstanceProfile: !Ref ApiProfile
+      SubnetId: !Select [0, !Ref SubnetIds]
+      SecurityGroupIds:
+        - !Ref ApiSecurityGroup
+      MetadataOptions:
+        HttpTokens: required
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 16
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: checkout-api
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euxo pipefail
+
+          # 1 GB of memory is not enough to compile the API: add swap.
+          dd if=/dev/zero of=/swapfile bs=1M count=2048
+          chmod 600 /swapfile
+          mkswap /swapfile
+          swapon /swapfile
+
+          dnf install -y docker git
+          systemctl enable --now docker
+
+          git clone --depth 1 --branch '${GitRef}' '${RepositoryUrl}' /opt/checkout
+          docker build -t checkout-api /opt/checkout/api
+
+          # Certificates of RDS, so the connection to the database is verified.
+          curl -fsS -o /opt/rds-ca.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+
+          # Secrets are read when the service starts and kept in memory (tmpfs),
+          # never written to the disk.
+          cat > /usr/local/bin/checkout-api-env <<'SCRIPT'
+          #!/bin/bash
+          set -euo pipefail
+          umask 077
+          out=/run/checkout-api.env
+          aws ssm get-parameters-by-path --region ${AWS::Region} --path /checkout/gateway \
+            --with-decryption --query 'Parameters[].[Name,Value]' --output text |
+            while read -r name value; do echo "$(basename "$name")=$value"; done > "$out"
+          password=$(aws secretsmanager get-secret-value --region ${AWS::Region} \
+            --secret-id '${DatabaseSecret}' --query SecretString --output text |
+            python3 -c 'import json,sys; print(json.load(sys.stdin)["password"])')
+          cat >> "$out" <<ENV
+          PORT=3000
+          DB_HOST=${Database.Endpoint.Address}
+          DB_PORT=${Database.Endpoint.Port}
+          DB_USER=checkout
+          DB_PASSWORD=$password
+          DB_NAME=checkout
+          DB_SSL=true
+          NODE_EXTRA_CA_CERTS=/etc/ssl/rds-ca.pem
+          CORS_ORIGINS=https://${WebDistribution.DomainName}
+          TRUST_PROXY_HOPS=1
+          ENV
+          SCRIPT
+          chmod 700 /usr/local/bin/checkout-api-env
+
+          cat > /etc/systemd/system/checkout-api.service <<'UNIT'
+          [Unit]
+          Description=Checkout API
+          After=docker.service network-online.target
+          Requires=docker.service
+
+          [Service]
+          Restart=always
+          RestartSec=10
+          ExecStartPre=/usr/local/bin/checkout-api-env
+          ExecStartPre=-/usr/bin/docker rm -f checkout-api
+          ExecStart=/usr/bin/docker run --rm --name checkout-api --env-file /run/checkout-api.env -v /opt/rds-ca.pem:/etc/ssl/rds-ca.pem:ro -p 3000:3000 checkout-api
+          ExecStop=/usr/bin/docker stop checkout-api
+
+          [Install]
+          WantedBy=multi-user.target
+          UNIT
+
+          systemctl daemon-reload
+          systemctl enable --now checkout-api
+
+  # CloudFront gives the API HTTPS without a load balancer.
+  ApiDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: Checkout API
+        HttpVersion: http2and3
+        PriceClass: PriceClass_100
+        Origins:
+          - Id: api
+            DomainName: !Sub
+              - ec2-${Dashed}.${AWS::Region}.compute.amazonaws.com
+              - Dashed: !Join ['-', !Split ['.', !GetAtt ApiAddress.PublicIp]]
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+              HTTPPort: 3000
+              OriginReadTimeout: 30
+        DefaultCacheBehavior:
+          TargetOriginId: api
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
+          Compress: true
+          # Managed policies: nothing is cached, everything but Host is forwarded.
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+          OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
+
+  # -------------------------------------------------------------------- web
+  WebBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  WebAccess:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub ${AWS::StackName}-web
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  WebSecurityHeaders:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub ${AWS::StackName}-web-security
+        SecurityHeadersConfig:
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: true
+            Override: true
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: no-referrer
+            Override: true
+          ContentSecurityPolicy:
+            Override: true
+            ContentSecurityPolicy: !Sub >-
+              default-src 'none'; script-src 'self'; style-src 'self';
+              img-src 'self' data:; font-src 'self' data:;
+              connect-src https://${ApiDistribution.DomainName} https://${GatewayHost};
+              base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+        CustomHeadersConfig:
+          Items:
+            - Header: Permissions-Policy
+              Value: camera=(), microphone=(), geolocation=(), payment=()
+              Override: true
+            - Header: Cross-Origin-Opener-Policy
+              Value: same-origin
+              Override: true
+
+  WebDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: Checkout web app
+        HttpVersion: http2and3
+        PriceClass: PriceClass_100
+        DefaultRootObject: index.html
+        Origins:
+          - Id: web
+            DomainName: !GetAtt WebBucket.RegionalDomainName
+            OriginAccessControlId: !Ref WebAccess
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: web
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          Compress: true
+          # Managed policy: cache as the object says.
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: !Ref WebSecurityHeaders
+
+  WebBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: OnlyThisDistribution
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${WebBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${WebDistribution}
+
+Outputs:
+  WebUrl:
+    Value: !Sub https://${WebDistribution.DomainName}
+  ApiUrl:
+    Value: !Sub https://${ApiDistribution.DomainName}
+  ApiDocsUrl:
+    Value: !Sub https://${ApiDistribution.DomainName}/docs
+  WebBucketName:
+    Value: !Ref WebBucket
+  WebDistributionId:
+    Value: !Ref WebDistribution
+  ApiInstanceId:
+    Value: !Ref ApiInstance
