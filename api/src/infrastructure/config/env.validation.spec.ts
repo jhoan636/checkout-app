@@ -38,6 +38,7 @@ describe('validateEnv', () => {
       DELIVERY_FEE_IN_CENTS: 900_000,
       CORS_ORIGINS: ['https://shop.example.com', 'http://localhost:5173'],
       RATE_LIMIT_PER_MINUTE: 60,
+      TRUST_PROXY_HOPS: 0,
     });
   });
 
@@ -184,5 +185,23 @@ describe('validateEnv', () => {
     expect(() =>
       validateEnv({ ...validEnv, RATE_LIMIT_PER_MINUTE: '0' }),
     ).toThrow('RATE_LIMIT_PER_MINUTE');
+  });
+
+  describe('TRUST_PROXY_HOPS', () => {
+    it('trusts no proxy unless told otherwise', () => {
+      expect(validateEnv(validEnv).TRUST_PROXY_HOPS).toBe(0);
+    });
+
+    it('accepts the number of proxies in front of the API', () => {
+      expect(
+        validateEnv({ ...validEnv, TRUST_PROXY_HOPS: '2' }).TRUST_PROXY_HOPS,
+      ).toBe(2);
+    });
+
+    it.each(['-1', '6', 'true', '1.5'])('refuses %s', (value) => {
+      expect(() =>
+        validateEnv({ ...validEnv, TRUST_PROXY_HOPS: value }),
+      ).toThrow('TRUST_PROXY_HOPS must be a whole number between 0 and 5');
+    });
   });
 });

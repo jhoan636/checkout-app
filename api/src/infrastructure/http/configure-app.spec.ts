@@ -1,6 +1,12 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  INestApplication,
+  ValidationError,
+  ValidationPipe,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { configureApp, securityHeaders } from './configure-app';
+import { HttpErrorFilter } from './errors/http-error.filter';
 import { RequestLogInterceptor } from './request-log.interceptor';
 
 const setup = () => {
@@ -8,11 +14,14 @@ const setup = () => {
     get: jest.fn().mockReturnValue(
       new ConfigService({
         CORS_ORIGINS: ['https://shop.example.com', 'http://localhost:5173'],
+        TRUST_PROXY_HOPS: 2,
       }),
     ),
+    set: jest.fn(),
     use: jest.fn(),
     enableCors: jest.fn(),
     useGlobalPipes: jest.fn(),
+    useGlobalFilters: jest.fn(),
     useGlobalInterceptors: jest.fn(),
     enableShutdownHooks: jest.fn(),
   };
@@ -44,6 +53,53 @@ describe('configureApp', () => {
       validatorOptions: { whitelist: true, forbidNonWhitelisted: true },
       isTransformEnabled: true,
     });
+  });
+
+  it('answers validation failures with one code and every message, nested ones included', () => {
+    const app = setup();
+    const [pipe] = app.useGlobalPipes.mock.calls[0] as [ValidationPipe];
+    const errors: ValidationError[] = [
+      {
+        property: 'quantity',
+        constraints: { min: 'quantity must not be less than 1' },
+      },
+      {
+        property: 'customer',
+        children: [
+          {
+            property: 'email',
+            constraints: { isEmail: 'email must be an email' },
+          },
+        ],
+      },
+    ];
+
+    const { exceptionFactory } = pipe as unknown as {
+      exceptionFactory: (errors: ValidationError[]) => BadRequestException;
+    };
+    const exception = exceptionFactory(errors);
+
+    expect(exception.getResponse()).toEqual({
+      statusCode: 400,
+      error: 'VALIDATION_ERROR',
+      message: [
+        'quantity must not be less than 1',
+        'customer.email must be an email',
+      ],
+    });
+  });
+
+  it('gives every HTTP error the same shape', () => {
+    const app = setup();
+
+    const [filter] = app.useGlobalFilters.mock.calls[0] as [unknown];
+    expect(filter).toBeInstanceOf(HttpErrorFilter);
+  });
+
+  it('trusts exactly the configured number of proxies for the client address', () => {
+    const app = setup();
+
+    expect(app.set).toHaveBeenCalledWith('trust proxy', 2);
   });
 
   it('allows only the configured origins, methods and headers through CORS', () => {
