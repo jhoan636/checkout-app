@@ -42,6 +42,18 @@ const parseTransaction = (
   return ok({ id: data.id, status: data.status, reference: data.reference });
 };
 
+/** A search answers a list; a reference identifies at most one charge. */
+const parseSearch = (
+  body: unknown,
+): Result<GatewayTransaction | null, GatewayError> => {
+  const data = isRecord(body) ? body.data : undefined;
+  if (!Array.isArray(data)) {
+    return err('GATEWAY_INVALID_RESPONSE');
+  }
+  const [first] = data as unknown[];
+  return data.length === 0 ? ok(null) : parseTransaction({ data: first });
+};
+
 /**
  * Adapter: talks to the payment gateway over HTTPS. It never throws and never
  * logs: requests carry the private key and the card token.
@@ -55,7 +67,7 @@ export class HttpPaymentGateway implements PaymentGateway {
   createCardTransaction(
     charge: CardCharge,
   ): Promise<Result<GatewayTransaction, GatewayError>> {
-    return this.request('/transactions', {
+    return this.request(parseTransaction, '/transactions', {
       method: 'POST',
       body: JSON.stringify({
         amount_in_cents: charge.amountInCents,
@@ -78,15 +90,27 @@ export class HttpPaymentGateway implements PaymentGateway {
     gatewayTransactionId: string,
   ): Promise<Result<GatewayTransaction, GatewayError>> {
     return this.request(
+      parseTransaction,
       `/transactions/${encodeURIComponent(gatewayTransactionId)}`,
       { method: 'GET' },
     );
   }
 
-  private async request(
+  findTransactionByReference(
+    reference: string,
+  ): Promise<Result<GatewayTransaction | null, GatewayError>> {
+    return this.request(
+      parseSearch,
+      `/transactions?reference=${encodeURIComponent(reference)}`,
+      { method: 'GET' },
+    );
+  }
+
+  private async request<T>(
+    parse: (body: unknown) => Result<T, GatewayError>,
     path: string,
     init: { method: 'GET' | 'POST'; body?: string },
-  ): Promise<Result<GatewayTransaction, GatewayError>> {
+  ): Promise<Result<T, GatewayError>> {
     const response = await fromPromise(
       this.httpFetch(`${this.config.baseUrl}${path}`, {
         ...init,
@@ -114,6 +138,6 @@ export class HttpPaymentGateway implements PaymentGateway {
       response.value.json(),
       () => 'GATEWAY_INVALID_RESPONSE',
     );
-    return body.ok ? parseTransaction(body.value) : body;
+    return body.ok ? parse(body.value) : body;
   }
 }

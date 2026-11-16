@@ -47,4 +47,13 @@ export interface PaymentGateway {
   findTransaction(
     gatewayTransactionId: string,
   ): Promise<Result<GatewayTransaction, GatewayError>>;
+
+  /**
+   * Looks a charge up by the reference this application gave it. Used when
+   * the answer to the charge was lost and its gateway id is unknown. The
+   * value is null when the gateway has no transaction with that reference.
+   */
+  findTransactionByReference(
+    reference: string,
+  ): Promise<Result<GatewayTransaction | null, GatewayError>>;
 }

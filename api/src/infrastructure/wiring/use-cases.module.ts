@@ -88,12 +88,18 @@ import { SystemClock, UuidGenerator } from '../system/system-adapters';
     },
     {
       provide: GetTransactionUseCase,
-      inject: [TRANSACTION_REPOSITORY, PAYMENT_GATEWAY, TransactionSettlement],
+      inject: [
+        TRANSACTION_REPOSITORY,
+        PAYMENT_GATEWAY,
+        TransactionSettlement,
+        CLOCK,
+      ],
       useFactory: (
         transactions: TransactionRepository,
         gateway: PaymentGateway,
         settlement: TransactionSettlement,
-      ) => new GetTransactionUseCase(transactions, gateway, settlement),
+        clock: Clock,
+      ) => new GetTransactionUseCase(transactions, gateway, settlement, clock),
     },
     {
       provide: ProductQueries,
