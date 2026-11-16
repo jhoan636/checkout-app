@@ -9,23 +9,23 @@ import type { Services } from '../store/services'
 import { createAppStore } from '../store/store'
 import type { RootState } from '../store/store'
 
-export const headphones: Product = {
+export const drone: Product = {
   id: 'prod-1',
-  name: 'Aurora Wireless Headphones',
-  description: 'Over-ear headphones with noise cancelling.',
+  name: 'Glide Camera Drone',
+  description: 'A foldable camera drone with a stabilised gimbal.',
   priceInCents: 45_990_000,
   stock: 12,
-  imageUrl: '/products/aurora-headphones.webp',
+  imageUrl: '/products/glide-drone.webp',
 }
 
 /** The product already loaded, for screens that do not load it themselves. */
 export const readyProducts = (
-  items: Product[] = [headphones],
+  items: Product[] = [drone],
 ): ProductsState => ({ items, status: 'ready', error: null })
 
-/** What one unit of the headphones costs, fees included. */
+/** What one unit of the drone costs, fees included. */
 export const summaryForOne: PaymentSummary = {
-  productId: headphones.id,
+  productId: drone.id,
   quantity: 1,
   subtotalInCents: 45_990_000,
   baseFeeInCents: 300_000,
@@ -40,12 +40,12 @@ export const acceptance: Acceptance = {
   personalDataUrl: 'https://gateway.test/personal-data.pdf',
 }
 
-/** One unit of the headphones, already paid. */
+/** One unit of the drone, already paid. */
 export const approvedTransaction: Transaction = {
   id: 'b6f1c2d4-0000-4000-8000-000000000001',
   reference: 'ORDER-TEST-0001',
   status: 'APPROVED',
-  productId: headphones.id,
+  productId: drone.id,
   quantity: 1,
   unitPriceInCents: 45_990_000,
   baseFeeInCents: 300_000,
@@ -58,8 +58,8 @@ export const approvedTransaction: Transaction = {
 
 /** A fake API: every call answers from memory unless a test overrides it. */
 export const fakeApi = (overrides: Partial<CheckoutApi> = {}): CheckoutApi => ({
-  getProducts: jest.fn().mockResolvedValue({ ok: true, data: [headphones] }),
-  getProduct: jest.fn().mockResolvedValue({ ok: true, data: headphones }),
+  getProducts: jest.fn().mockResolvedValue({ ok: true, data: [drone] }),
+  getProduct: jest.fn().mockResolvedValue({ ok: true, data: drone }),
   getPaymentSummary: jest
     .fn()
     .mockResolvedValue({ ok: true, data: summaryForOne }),

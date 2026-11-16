@@ -152,6 +152,17 @@ The form helps the customer type the card correctly before anything is sent. The
 
 The rules live in `web/src/lib/card.ts`.
 
+### Cards that work in the sandbox
+
+The gateway's test environment only accepts two card numbers. Any other number, MasterCard included, is refused when the card is tokenized, and the form answers "The card was not accepted".
+
+| Card number | Result of the payment |
+|---|---|
+| `4242 4242 4242 4242` | Approved |
+| `4111 1111 1111 1111` | Declined |
+
+Use any future expiry date, any 3-digit security code and any name of 5 characters or more.
+
 ## Recovering progress after a refresh
 
 The checkout keeps a small snapshot in `localStorage`, so a refresh does not send the customer back to the start.
@@ -180,7 +191,7 @@ Results on 2026-11-15:
 |---|---|---|---|---|---|
 | `api/` (unit) | 327 | 99.15% | 92.18% | 98.34% | 99.15% |
 | `api/` (end-to-end, real PostgreSQL) | 22 | – | – | – | – |
-| `web/` (unit) | 291 | 100% | 99.06% | 100% | 100% |
+| `web/` (unit) | 293 | 100% | 99.07% | 100% | 100% |
 
 To reproduce them, run `npm run test:cov` inside `api/` and inside `web/`.
 
@@ -242,6 +253,6 @@ The API must be running, and its `CORS_ORIGINS` must include the web origin (the
 
 ## Credits
 
-- Visual direction inspired by "A Checkout Flow" by Banu Elmas (Figma Community, CC BY 4.0). No screens or assets were copied.
-- Product photo from [Unsplash](https://unsplash.com), under the Unsplash License.
+- Structure of the checkout screens inspired by "A Checkout Flow" by Banu Elmas (Figma Community, CC BY 4.0). No screens or assets were copied.
+- Colour palette (polar white, glacier blue, racing red) built on the 60/30/10 rule.
 - Brand marks in the card form are simplified drawings used only to identify the card type.

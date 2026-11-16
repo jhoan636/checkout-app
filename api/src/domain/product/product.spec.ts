@@ -3,11 +3,11 @@ import { Product, reserveStock } from './product';
 
 const product: Product = {
   id: 'prod-1',
-  name: 'Wireless headphones',
-  description: 'Over-ear, noise cancelling',
+  name: 'Camera drone',
+  description: 'Foldable, with a gimbal',
   priceInCents: 25_000_000,
   stock: 5,
-  imageUrl: 'https://example.com/headphones.png',
+  imageUrl: 'https://example.com/drone.png',
 };
 
 describe('reserveStock', () => {

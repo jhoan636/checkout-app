@@ -9,7 +9,7 @@ import {
   acceptance,
   approvedTransaction,
   fakeApi,
-  headphones,
+  drone,
   readyProducts,
   renderWithStore,
   summaryForOne,
@@ -19,7 +19,7 @@ import { StatusPage } from './StatusPage'
 const onStatus: CheckoutState = {
   ...initialCheckoutState,
   step: 'status',
-  productId: headphones.id,
+  productId: drone.id,
   quantity: 1,
   customer: {
     fullName: 'Ana Maria Perez',
@@ -95,7 +95,7 @@ describe('StatusPage', () => {
       expect(detail('Total paid')).toHaveTextContent('$474.900')
       expect(detail('Reference')).toHaveTextContent('ORDER-TEST-0001')
       expect(detail('Product')).toHaveTextContent(
-        'Aurora Wireless Headphones × 1',
+        'Glide Camera Drone × 1',
       )
     })
   })
@@ -209,7 +209,7 @@ describe('StatusPage', () => {
 
       expect(api.createTransaction).toHaveBeenCalledWith(
         approvedTransaction.id,
-        expect.objectContaining({ productId: headphones.id }),
+        expect.objectContaining({ productId: drone.id }),
       )
       expect(
         await screen.findByRole('heading', { name: 'Payment approved' }),
@@ -226,7 +226,7 @@ describe('StatusPage', () => {
 
       expect(store.getState().checkout).toEqual({
         ...initialCheckoutState,
-        productId: headphones.id,
+        productId: drone.id,
       })
       expect(store.getState().transaction.phase).toBe('idle')
     })
@@ -236,7 +236,7 @@ describe('StatusPage', () => {
       const api = fakeApi({
         getProducts: jest
           .fn()
-          .mockResolvedValue({ ok: true, data: [{ ...headphones, stock: 11 }] }),
+          .mockResolvedValue({ ok: true, data: [{ ...drone, stock: 11 }] }),
       })
       const { store } = renderStatus(settled('APPROVED'), api)
 

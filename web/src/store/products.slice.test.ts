@@ -4,13 +4,13 @@ import { loadProducts, selectProductById } from './products.slice'
 import { fakeServices } from '../test/render'
 import { createAppStore } from './store'
 
-const headphones: Product = {
+const drone: Product = {
   id: 'prod-1',
-  name: 'Aurora Wireless Headphones',
-  description: 'Over-ear headphones',
+  name: 'Glide Camera Drone',
+  description: 'Foldable camera drone',
   priceInCents: 45_990_000,
   stock: 12,
-  imageUrl: '/products/aurora-headphones.webp',
+  imageUrl: '/products/glide-drone.webp',
 }
 
 const apiWith = (getProducts: CheckoutApi['getProducts']) =>
@@ -42,13 +42,13 @@ describe('products slice', () => {
 
   it('stores the products when the API answers', async () => {
     const store = storeWith(
-      apiWith(() => Promise.resolve({ ok: true, data: [headphones] })),
+      apiWith(() => Promise.resolve({ ok: true, data: [drone] })),
     )
 
     await store.dispatch(loadProducts())
 
     expect(store.getState().products).toEqual({
-      items: [headphones],
+      items: [drone],
       status: 'ready',
       error: null,
     })
@@ -84,7 +84,7 @@ describe('products slice', () => {
         ok: false,
         error: { status: 0, code: 'NETWORK_ERROR', message: 'Offline' },
       })
-      .mockResolvedValueOnce({ ok: true, data: [headphones] })
+      .mockResolvedValueOnce({ ok: true, data: [drone] })
     const store = storeWith(apiWith(getProducts))
 
     await store.dispatch(loadProducts())
@@ -98,11 +98,11 @@ describe('products slice', () => {
 
   it('selects a product by id', async () => {
     const store = storeWith(
-      apiWith(() => Promise.resolve({ ok: true, data: [headphones] })),
+      apiWith(() => Promise.resolve({ ok: true, data: [drone] })),
     )
     await store.dispatch(loadProducts())
 
-    expect(selectProductById(store.getState(), 'prod-1')).toEqual(headphones)
+    expect(selectProductById(store.getState(), 'prod-1')).toEqual(drone)
     expect(selectProductById(store.getState(), 'nope')).toBeUndefined()
   })
 

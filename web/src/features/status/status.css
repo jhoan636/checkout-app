@@ -4,16 +4,23 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-3);
-  width: 100%;
-  max-width: 480px;
-  margin: 0 auto;
-  padding: var(--space-6) var(--gutter);
+  /* The card never touches the edge of a phone. */
+  width: calc(100% - var(--gutter) * 2);
+  max-width: 520px;
+  margin: var(--space-5) auto 0;
+  padding: var(--space-7) var(--space-5);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, var(--surface), var(--bg-top));
+  box-shadow: var(--shadow-card);
   text-align: center;
 }
 
+/* The title keeps the heading colour even when the payment was declined. */
 .status h2 {
-  font-size: 22px;
-  font-weight: 700;
+  color: var(--heading);
+  font-size: var(--text-figure);
+  font-weight: 800;
+  letter-spacing: var(--tracking-tight);
 }
 
 .status__text {
@@ -25,31 +32,41 @@
 .status__icon {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
+  margin-bottom: var(--space-2);
   border-radius: 50%;
   background: var(--ok-soft);
   color: var(--ok);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--ok-soft) 50%, transparent);
+  animation: status-pop var(--dur-slow) var(--ease-spring);
 }
 
 .status__icon[data-tone='bad'] {
   background: var(--bad-soft);
   color: var(--bad);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--bad-soft) 50%, transparent);
 }
 
 .status__icon[data-tone='wait'] {
   background: var(--warn-soft);
   color: var(--warn);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--warn-soft) 50%, transparent);
+}
+
+@keyframes status-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
 }
 
 .status__details {
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin: var(--space-2) 0 0;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-m);
-  background: var(--surface);
+  margin: var(--space-3) 0 0;
+  border-top: 1px dashed var(--line-strong);
   text-align: left;
 }
 
@@ -58,7 +75,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: var(--space-3);
+  padding: var(--space-3) 0;
 }
 
 .status__details div + div {
@@ -68,7 +85,10 @@
 .status__details dt {
   flex: none;
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: var(--text-meta);
+  font-weight: 600;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
 }
 
 .status__details dd {
@@ -90,4 +110,10 @@
 
 .status__actions .button--primary {
   flex: none;
+}
+
+@media (min-width: 720px) {
+  .status {
+    margin-top: var(--space-8);
+  }
 }

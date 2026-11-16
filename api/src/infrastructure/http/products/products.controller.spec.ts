@@ -8,11 +8,11 @@ const id = 'a3f1c2d4-5b6e-4f70-8a91-b2c3d4e5f601';
 
 const product: Product = {
   id,
-  name: 'Aurora Wireless Headphones',
-  description: 'Over-ear headphones',
+  name: 'Glide Camera Drone',
+  description: 'Foldable camera drone',
   priceInCents: 45_990_000,
   stock: 12,
-  imageUrl: '/products/aurora-headphones.webp',
+  imageUrl: '/products/glide-drone.webp',
 };
 
 const summary = {

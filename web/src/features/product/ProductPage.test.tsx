@@ -2,7 +2,7 @@ import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Product } from '../../api/types'
 import { initialCheckoutState } from '../../store/checkout.slice'
-import { headphones, readyProducts, renderWithStore } from '../../test/render'
+import { drone, readyProducts, renderWithStore } from '../../test/render'
 import { ProductPage } from './ProductPage'
 
 const renderProduct = (
@@ -14,7 +14,7 @@ const renderProduct = (
 ) =>
   renderWithStore(<ProductPage />, {
     state: {
-      products: readyProducts(options.items ?? [headphones]),
+      products: readyProducts(options.items ?? [drone]),
       checkout: {
         ...initialCheckoutState,
         productId: options.productId ?? null,
@@ -26,7 +26,7 @@ const renderProduct = (
 const payButton = () =>
   screen.getByRole('button', { name: 'Pay with credit card' })
 /** The same product with only three units left. */
-const fewLeft: Product = { ...headphones, stock: 3 }
+const fewLeft: Product = { ...drone, stock: 3 }
 
 const title = (name: string) => screen.getByRole('heading', { level: 2, name })
 
@@ -35,19 +35,32 @@ describe('ProductPage', () => {
     it('shows its name, description, price and units in stock', () => {
       renderProduct()
 
-      expect(title('Aurora Wireless Headphones')).toBeInTheDocument()
+      expect(title('Glide Camera Drone')).toBeInTheDocument()
       expect(
-        screen.getByText('Over-ear headphones with noise cancelling.'),
+        screen.getByText('A foldable camera drone with a stabilised gimbal.'),
       ).toBeInTheDocument()
       expect(screen.getByTestId('price')).toHaveTextContent('$459.900')
       expect(screen.getByText('12 in stock')).toBeInTheDocument()
     })
 
+    it('highlights the last word of the name', () => {
+      renderProduct()
+
+      const accent = title('Glide Camera Drone').querySelector('em')
+      expect(accent).toHaveTextContent(/^Drone$/)
+    })
+
+    it('highlights a name of a single word as a whole', () => {
+      renderProduct({ items: [{ ...drone, name: '  Glide ' }] })
+
+      expect(title('Glide').querySelector('em')).toHaveTextContent(/^Glide$/)
+    })
+
     it('shows its photo with a real size, so the page does not jump', () => {
       renderProduct()
-      const image = screen.getByRole('img', { name: 'Aurora Wireless Headphones' })
+      const image = screen.getByRole('img', { name: 'Glide Camera Drone' })
 
-      expect(image).toHaveAttribute('src', '/products/aurora-headphones.webp')
+      expect(image).toHaveAttribute('src', '/products/glide-drone.webp')
       expect(image).toHaveAttribute('width')
       expect(image).toHaveAttribute('height')
     })
@@ -56,11 +69,11 @@ describe('ProductPage', () => {
       renderProduct()
 
       fireEvent.error(
-        screen.getByRole('img', { name: 'Aurora Wireless Headphones' }),
+        screen.getByRole('img', { name: 'Glide Camera Drone' }),
       )
 
       expect(
-        screen.queryByRole('img', { name: 'Aurora Wireless Headphones' }),
+        screen.queryByRole('img', { name: 'Glide Camera Drone' }),
       ).toBeNull()
       expect(payButton()).toBeEnabled()
     })
@@ -76,11 +89,11 @@ describe('ProductPage', () => {
     it('records which product is being bought', () => {
       const { store } = renderProduct()
 
-      expect(store.getState().checkout.productId).toBe(headphones.id)
+      expect(store.getState().checkout.productId).toBe(drone.id)
     })
 
     it('keeps the units already chosen for the same product', () => {
-      const { store } = renderProduct({ productId: headphones.id, quantity: 4 })
+      const { store } = renderProduct({ productId: drone.id, quantity: 4 })
 
       expect(store.getState().checkout.quantity).toBe(4)
       expect(screen.getByLabelText('Quantity')).toHaveTextContent('4')
@@ -143,13 +156,13 @@ describe('ProductPage', () => {
 
       expect(store.getState().checkout).toMatchObject({
         step: 'details',
-        productId: headphones.id,
+        productId: drone.id,
         quantity: 2,
       })
     })
 
     it('cannot pay for a product that is sold out', () => {
-      renderProduct({ items: [{ ...headphones, stock: 0 }] })
+      renderProduct({ items: [{ ...drone, stock: 0 }] })
 
       expect(screen.getByText('Sold out')).toBeInTheDocument()
       expect(payButton()).toBeDisabled()

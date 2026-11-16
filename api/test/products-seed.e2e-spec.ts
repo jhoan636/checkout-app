@@ -30,8 +30,8 @@ describe('Seeded products (e2e)', () => {
 
     expect(all).toHaveLength(1);
     expect(all[0]).toMatchObject({
-      name: 'Aurora Wireless Headphones',
-      imageUrl: '/products/aurora-headphones.webp',
+      name: 'Glide Camera Drone',
+      imageUrl: '/products/glide-drone.webp',
     });
   });
 
@@ -41,7 +41,7 @@ describe('Seeded products (e2e)', () => {
     );
 
     expect(product).toMatchObject({
-      name: 'Aurora Wireless Headphones',
+      name: 'Glide Camera Drone',
       priceInCents: 45_990_000,
     });
     expect(Number.isInteger(product?.stock)).toBe(true);

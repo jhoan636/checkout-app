@@ -1,41 +1,85 @@
 /*
  * Design tokens. Every colour, radius and shadow in the app comes from here.
- * Clean store look: white surfaces, light grey groups, one blue for actions.
+ *
+ * The palette follows a 60/30/10 rule:
+ * - 60% polar white: page and surfaces.
+ * - 30% glacier blue: soft fills, halos and borders. It never carries text.
+ * - 10% racing red: the main action and one accent word. Nothing else.
+ *
+ * Errors use a brick red on a tinted background, never the racing red, so an
+ * error can not be mistaken for a button.
+ *
+ * There is one theme on purpose: the palette is the brand, so the store looks
+ * the same whether the device is set to light or to dark.
  */
 :root {
-  color-scheme: light;
+  /* Also keeps form controls and scrollbars light on a dark device. */
+  color-scheme: only light;
 
-  --bg: #f6f7f9;
+  /* Polar white */
+  --bg: #eef2f6;
+  --bg-top: #f7f9fb;
   --surface: #ffffff;
-  --fill: #f1f2f5;
-  --ink: #16181d;
-  --ink-2: #646b78;
-  --line: #e3e6ec;
+  --surface-glass: rgb(255 255 255 / 0.86);
+  --fill: #e3eaf1;
+  --ink: #2b344a;
+  --ink-2: #5b6782;
+  --heading: #4a5673;
+  /* Decorative dividers only; controls use the strong line (3:1 on white). */
+  --line: #dce3eb;
+  --line-strong: #7c8aa3;
 
-  --accent: #1d6fe0;
-  --accent-strong: #1559b8;
+  /* Glacier blue */
+  --glacier: #a9c7de;
+  --glacier-soft: #dce8f2;
+  --glacier-ink: #2c5878;
+
+  /* Racing red. White on it is 4.85:1; as text it is used only at large sizes. */
+  --accent: #e4002b;
+  --accent-strong: #b8001f;
   --on-accent: #ffffff;
+  /* The focus ring is never red: a focused field must not look invalid. */
+  --focus: #2c5878;
 
-  --ok: #12804a;
-  --ok-soft: #e2f5ea;
-  --warn: #9a5b00;
-  --warn-soft: #fdf0d5;
-  --bad: #c9271b;
-  --bad-soft: #fde8e6;
-  --note: #fff7d9;
-  --note-ink: #6b5200;
+  --ok: #0e7a45;
+  --ok-soft: #e3f4ea;
+  --warn: #8a5300;
+  --warn-soft: #fcf1dc;
+  --bad: #9c1c12;
+  --bad-soft: #fbece8;
 
-  --card-a: #1b2030;
-  --card-b: #1d6fe0;
-  --scrim: rgb(15 18 25 / 0.5);
-  --shadow-rgb: 20 24 34;
+  /* The drawing of the credit card in the form. */
+  --card-a: #2b344a;
+  --card-b: #5c7894;
+  --on-card: #ffffff;
+  --card-glow: rgb(255 255 255 / 0.14);
+  --card-line: rgb(255 255 255 / 0.18);
+  --chip-a: #eef2f6;
+  --chip-b: #a9b6c6;
+  --scrim: rgb(43 52 74 / 0.42);
+  --shadow-rgb: 43 52 74;
 
   --font-ui: 'Geist Variable', 'Segoe UI', system-ui, sans-serif;
   --font-brand: 'Unbounded', 'Geist Variable', sans-serif;
 
-  --radius-s: 8px;
-  --radius-m: 12px;
-  --radius-l: 20px;
+  /* Type scale, named by what the text is for. */
+  --text-meta: 11px; /* small uppercase labels */
+  --text-caption: 12px;
+  --text-small: 13px;
+  --text-body: 15px;
+  --text-control: 16px; /* inputs: 16px stops iOS from zooming in */
+  --text-title: 18px;
+  --text-heading: 20px;
+  --text-figure: 26px; /* prices, totals and the result of a payment */
+  --text-display: clamp(34px, 9.5vw, 64px);
+  --tracking-tight: -0.045em;
+  --tracking-meta: 0.12em;
+
+  --radius-xs: 5px;
+  --radius-s: 10px;
+  --radius-m: 14px;
+  --radius-l: 22px;
+  --radius-xl: 32px;
   --radius-pill: 999px;
 
   --space-1: 4px;
@@ -44,42 +88,29 @@
   --space-4: 16px;
   --space-5: 20px;
   --space-6: 28px;
+  --space-7: 40px;
+  --space-8: 56px;
 
-  --shadow-float: 0 10px 24px -14px rgb(var(--shadow-rgb) / 0.4);
-  --shadow-sheet: 0 -16px 32px -18px rgb(var(--shadow-rgb) / 0.35);
+  --shadow-float: 0 18px 40px -24px rgb(var(--shadow-rgb) / 0.35);
+  --shadow-sheet: 0 -20px 40px -24px rgb(var(--shadow-rgb) / 0.35);
+  --shadow-card:
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 28px 60px -40px rgb(var(--shadow-rgb) / 0.5);
+  --shadow-cta: 0 10px 22px -12px rgb(228 0 43 / 0.6);
+
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 360ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 
   /* Smallest supported screen: iPhone SE, 375 CSS pixels wide. */
-  --page-max: 960px;
+  --page-max: 1120px;
   --gutter: 16px;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (min-width: 960px) {
   :root {
-    color-scheme: dark;
-
-    --bg: #0f1115;
-    --surface: #181b21;
-    --fill: #22262e;
-    --ink: #f2f4f7;
-    --ink-2: #9aa2b1;
-    --line: #2a2f39;
-
-    --accent: #4d94f5;
-    --accent-strong: #76adf8;
-    --on-accent: #0b1220;
-
-    --ok: #4cd08a;
-    --ok-soft: #12301f;
-    --warn: #f0b955;
-    --warn-soft: #33270f;
-    --bad: #ff7b70;
-    --bad-soft: #3a1a17;
-    --note: #2b2610;
-    --note-ink: #ecd58a;
-
-    --card-a: #0b0e15;
-    --card-b: #2a5fb0;
-    --scrim: rgb(0 0 0 / 0.62);
-    --shadow-rgb: 0 0 0;
+    --gutter: 32px;
   }
 }

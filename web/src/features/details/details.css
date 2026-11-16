@@ -13,6 +13,8 @@
 
 .sheet::backdrop {
   background: var(--scrim);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 .sheet__form {
@@ -28,30 +30,38 @@
   gap: var(--space-3);
   padding: var(--space-3) var(--gutter);
   border-bottom: 1px solid var(--line);
-  background: var(--surface);
+  background: var(--surface-glass);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
 .sheet__head h2 {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--text-title);
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .sheet__head p {
   margin-top: 2px;
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: var(--text-small);
 }
 
 .sheet__close {
   display: grid;
   place-items: center;
   flex: none;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: 0;
-  border-radius: var(--radius-s);
+  border-radius: var(--radius-pill);
   background: var(--fill);
   color: var(--ink);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.sheet__close:hover {
+  background: var(--glacier-soft);
 }
 
 .sheet__body {
@@ -71,24 +81,29 @@
   padding: var(--space-3) var(--gutter)
     max(var(--space-3), env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--line);
-  background: var(--surface);
+  background: var(--surface-glass);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
+/* An error is a tinted box with a rule on its left: never a solid red. */
 .sheet__error {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3);
+  border-left: 3px solid var(--bad);
   border-radius: var(--radius-s);
   background: var(--bad-soft);
   color: var(--bad);
-  font-size: 13px;
+  font-size: var(--text-small);
+  font-weight: 500;
 }
 
 .group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-4);
   border: 1px solid var(--line);
-  border-radius: var(--radius-m);
+  border-radius: var(--radius-l);
   background: var(--surface);
 }
 
@@ -96,21 +111,25 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  color: var(--heading);
+  font-size: var(--text-meta);
+  font-weight: 700;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
 }
 
 .group__number {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 12px;
+  /* Not red: a red badge with a number reads as a notification. */
+  background: var(--glacier-soft);
+  color: var(--glacier-ink);
+  font-size: var(--text-caption);
   font-weight: 700;
+  letter-spacing: 0;
 }
 
 .group__pair {
@@ -122,7 +141,7 @@
 
 .group__hint {
   color: var(--ink-2);
-  font-size: 12px;
+  font-size: var(--text-caption);
   line-height: 1.45;
 }
 
@@ -134,9 +153,9 @@
 }
 
 .field label {
-  color: var(--ink-2);
-  font-size: 13px;
-  font-weight: 500;
+  color: var(--ink);
+  font-size: var(--text-small);
+  font-weight: 600;
 }
 
 .field__control {
@@ -150,12 +169,18 @@
   min-width: 0;
   height: 48px;
   padding: 0 var(--space-3);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-s);
   background: var(--surface);
   /* 16px stops iOS from zooming into the field. */
-  font-size: 16px;
-  transition: border-color 0.15s ease;
+  font-size: var(--text-control);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.field input:hover {
+  border-color: var(--ink-2);
 }
 
 .field input::placeholder {
@@ -164,13 +189,22 @@
 }
 
 .field input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 0;
-  border-color: var(--accent);
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 5px var(--glacier-soft);
 }
 
+/* Brick border plus a rule on the left; the focus ring stays glacier. */
 .field[data-invalid='true'] input {
   border-color: var(--bad);
+  box-shadow: inset 3px 0 0 var(--bad);
+}
+
+.field[data-invalid='true'] input:focus-visible {
+  box-shadow:
+    inset 3px 0 0 var(--bad),
+    0 0 0 5px var(--glacier-soft);
 }
 
 .field__control .brand {
@@ -184,9 +218,29 @@
 }
 
 .field__error {
+  display: flex;
+  gap: 6px;
   color: var(--bad);
-  font-size: 12px;
+  font-size: var(--text-small);
+  font-weight: 500;
   line-height: 1.35;
+}
+
+/* The mark is decoration: the message already says what is wrong. */
+.field__error::before {
+  content: '!';
+  content: '!' / '';
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--bad);
+  color: var(--surface);
+  font-size: var(--text-meta);
+  font-weight: 800;
 }
 
 .preview {
@@ -198,11 +252,27 @@
   max-width: 320px;
   aspect-ratio: 1.75 / 1;
   margin: 0 auto;
+  position: relative;
   padding: var(--space-4);
-  border-radius: var(--radius-m);
-  background: linear-gradient(135deg, var(--card-a), var(--card-b));
-  color: #fff;
+  border-radius: var(--radius-l);
+  background:
+    radial-gradient(120% 90% at 0% 0%, var(--card-glow), transparent 55%),
+    linear-gradient(135deg, var(--card-a), var(--card-b));
+  color: var(--on-card);
   box-shadow: var(--shadow-float);
+  overflow: hidden;
+}
+
+.preview::after {
+  content: '';
+  position: absolute;
+  top: -55%;
+  right: -28%;
+  width: 85%;
+  aspect-ratio: 1;
+  border: 1.5px solid var(--card-line);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
 .preview__top {
@@ -215,12 +285,12 @@
 .preview__chip {
   width: 36px;
   height: 26px;
-  border-radius: 5px;
-  background: linear-gradient(135deg, #e8d28a, #b9984a);
+  border-radius: var(--radius-xs);
+  background: linear-gradient(135deg, var(--chip-a), var(--chip-b));
 }
 
 .preview__number {
-  font-size: 18px;
+  font-size: var(--text-title);
   font-weight: 600;
   letter-spacing: 0.06em;
   font-variant-numeric: tabular-nums;
@@ -231,10 +301,9 @@
   display: flex;
   justify-content: space-between;
   gap: var(--space-3);
-  font-size: 12px;
+  font-size: var(--text-caption);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  opacity: 0.85;
 }
 
 .preview__bottom span:first-child {
@@ -247,11 +316,11 @@
 /* Tablets and up: a centred window over the store. */
 @media (min-width: 720px) {
   .sheet {
-    width: min(560px, calc(100% - 48px));
+    width: min(580px, calc(100% - 48px));
     height: auto;
-    max-height: min(820px, calc(100dvh - 48px));
+    max-height: min(840px, calc(100dvh - 48px));
     margin: auto;
-    border-radius: var(--radius-l);
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-float);
     overflow: hidden;
   }

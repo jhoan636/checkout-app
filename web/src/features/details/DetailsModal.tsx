@@ -280,6 +280,7 @@ export function DetailsModal({ now }: { now?: Date }) {
             type="submit"
             className="button button--primary"
             disabled={submitting}
+            aria-busy={submitting || undefined}
           >
             {submitting ? 'Verifying card…' : 'Continue'}
           </button>

@@ -5,7 +5,7 @@ import type { CheckoutState } from '../../store/checkout.slice'
 import type { PaymentGateway } from '../../api/gateway'
 import {
   fakeGateway,
-  headphones,
+  drone,
   readyProducts,
   renderWithStore,
 } from '../../test/render'
@@ -16,7 +16,7 @@ const now = new Date(2026, 10, 15)
 const onDetails: CheckoutState = {
   ...initialCheckoutState,
   step: 'details',
-  productId: headphones.id,
+  productId: drone.id,
   quantity: 2,
 }
 
@@ -52,7 +52,7 @@ describe('DetailsModal', () => {
     renderModal()
 
     const dialog = screen.getByRole('dialog', { name: 'Payment details' })
-    expect(dialog).toHaveTextContent('Aurora Wireless Headphones')
+    expect(dialog).toHaveTextContent('Glide Camera Drone')
     expect(dialog).toHaveTextContent('2 units')
   })
 
