@@ -26,4 +26,5 @@ npm-debug.log*
 Thumbs.db
 
 # Local assistant settings
-.claude/settings.local.json
+.claude/
+CLAUDE.md
