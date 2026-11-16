@@ -10,6 +10,7 @@ import { UseCasesModule } from './infrastructure/wiring/use-cases.module';
 import { ProductsController } from './infrastructure/http/products/products.controller';
 import { TransactionsController } from './infrastructure/http/transactions/transactions.controller';
 import { GatewayWebhookController } from './infrastructure/http/webhooks/gateway-webhook.controller';
+import { RootController } from './infrastructure/http/docs/root.controller';
 import { HealthController } from './infrastructure/http/health/health.controller';
 
 @Module({
@@ -30,6 +31,7 @@ import { HealthController } from './infrastructure/http/health/health.controller
     UseCasesModule,
   ],
   controllers: [
+    RootController,
     HealthController,
     ProductsController,
     TransactionsController,
