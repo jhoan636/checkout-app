@@ -129,6 +129,13 @@ describe('SummaryBackdrop', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Visa' })).toBeInTheDocument()
     expect(screen.getByText('•••• 4242')).toBeInTheDocument()
+    expect(screen.getByText('In 1 payment')).toBeInTheDocument()
+  })
+
+  it('says in how many payments the card will be charged', async () => {
+    renderSummary({ checkout: { ...onSummary, installments: 12 } })
+
+    expect(await screen.findByText('In 12 monthly payments')).toBeInTheDocument()
   })
 
   describe('accepting the conditions', () => {

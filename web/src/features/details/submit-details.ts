@@ -17,7 +17,7 @@ import type { DetailsValues } from './validation'
  * in a log or in the Redux developer tools.
  */
 export const submitDetails =
-  (values: DetailsValues): AppThunk<Promise<void>> =>
+  (values: DetailsValues, installments: number): AppThunk<Promise<void>> =>
   async (dispatch, _getState, { gateway }) => {
     dispatch(detailsSubmitting())
 
@@ -37,6 +37,7 @@ export const submitDetails =
     dispatch(
       detailsSubmitted({
         ...toPurchaseDetails(values),
+        installments,
         cardToken: result.data.token,
       }),
     )

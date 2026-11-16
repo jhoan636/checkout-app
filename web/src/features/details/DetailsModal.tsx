@@ -3,7 +3,7 @@ import type { ChangeEvent, InputHTMLAttributes, ReactNode, SyntheticEvent } from
 import { BrandLogo } from '../../components/BrandLogo'
 import { Modal } from '../../components/Modal'
 import { detectBrand, digitsOnly, formatCardNumber, formatExpiry } from '../../lib/card'
-import { detailsClosed } from '../../store/checkout.slice'
+import { detailsClosed, INSTALLMENT_OPTIONS } from '../../store/checkout.slice'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { selectProductById } from '../../store/products.slice'
 import { submitDetails } from './submit-details'
@@ -104,6 +104,7 @@ export function DetailsModal({ now }: { now?: Date }) {
   const [visited, setVisited] = useState<Partial<Record<DetailsField, boolean>>>(
     {},
   )
+  const [installments, setInstallments] = useState(1)
   const [submitted, setSubmitted] = useState(false)
   const inputs = useRef<Partial<Record<DetailsField, HTMLInputElement | null>>>(
     {},
@@ -144,7 +145,7 @@ export function DetailsModal({ now }: { now?: Date }) {
       inputs.current[firstInvalid]?.focus()
       return
     }
-    void dispatch(submitDetails(values))
+    void dispatch(submitDetails(values, installments))
   }
 
   const close = () => dispatch(detailsClosed())
@@ -212,6 +213,25 @@ export function DetailsModal({ now }: { now?: Date }) {
                 autoComplete="cc-csc"
                 placeholder="123"
               />
+            </div>
+            <div className="field">
+              <label htmlFor="details-installments">Installments</label>
+              <div className="field__control">
+                <select
+                  id="details-installments"
+                  name="installments"
+                  value={installments}
+                  onChange={(event) =>
+                    setInstallments(Number(event.target.value))
+                  }
+                >
+                  {INSTALLMENT_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option === 1 ? '1 payment' : `${option} monthly payments`}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <p className="group__hint">
               We accept VISA and MasterCard. Your card is sent encrypted to the

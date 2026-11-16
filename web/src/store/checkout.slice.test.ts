@@ -40,6 +40,7 @@ describe('checkout slice', () => {
       customer: null,
       delivery: null,
       card: null,
+      installments: 1,
       cardToken: null,
       submitting: false,
       submitError: null,
@@ -116,7 +117,15 @@ describe('checkout slice', () => {
   describe('details', () => {
     const onDetails = { ...initial, step: 'details' as const, productId: 'prod-1' }
     const waiting = { ...onDetails, submitting: true }
-    const tokenized = { ...details, cardToken: 'tok_test_1' }
+    const tokenized = { ...details, installments: 6, cardToken: 'tok_test_1' }
+
+    it('remembers in how many payments the customer wants to pay', () => {
+      const waiting = checkoutReducer(onDetails, detailsSubmitting())
+
+      expect(
+        checkoutReducer(waiting, detailsSubmitted(tokenized)).installments,
+      ).toBe(6)
+    })
 
     it('waits while the card is being checked', () => {
       const state = checkoutReducer(

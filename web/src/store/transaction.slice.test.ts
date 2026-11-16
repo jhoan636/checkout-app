@@ -88,6 +88,19 @@ describe('transaction slice', () => {
       })
     })
 
+    it('sends the number of payments the customer chose', async () => {
+      const { store, api } = setup({}, { ...onSummary, installments: 12 })
+
+      await store.dispatch(pay())
+
+      expect(api.createTransaction).toHaveBeenCalledWith(
+        approvedTransaction.id,
+        expect.objectContaining({
+          payment: expect.objectContaining({ installments: 12 }) as unknown,
+        }),
+      )
+    })
+
     it('moves to the status screen and says it is processing', () => {
       const { store } = setup({
         api: fakeApi({ createTransaction: () => new Promise(() => undefined) }),

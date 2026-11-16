@@ -33,7 +33,7 @@ describe('submitDetails', () => {
   it('sends the card to the gateway, in the shape it expects', async () => {
     const { store, gateway } = setup()
 
-    await store.dispatch(submitDetails(values))
+    await store.dispatch(submitDetails(values, 3))
 
     expect(gateway.tokenizeCard).toHaveBeenCalledWith({
       number: '4242424242424242',
@@ -47,7 +47,7 @@ describe('submitDetails', () => {
   it('never sends the card to our own API', async () => {
     const { store, api } = setup()
 
-    await store.dispatch(submitDetails(values))
+    await store.dispatch(submitDetails(values, 3))
 
     for (const call of Object.values(api)) {
       expect(call).not.toHaveBeenCalled()
@@ -59,7 +59,7 @@ describe('submitDetails', () => {
       fakeGateway({ tokenizeCard: () => new Promise(() => undefined) }),
     )
 
-    void store.dispatch(submitDetails(values))
+    void store.dispatch(submitDetails(values, 3))
 
     expect(store.getState().checkout).toMatchObject({
       step: 'details',
@@ -70,7 +70,7 @@ describe('submitDetails', () => {
   it('keeps the token and the safe details, and moves to the summary', async () => {
     const { store } = setup()
 
-    await store.dispatch(submitDetails(values))
+    await store.dispatch(submitDetails(values, 3))
 
     expect(store.getState().checkout).toMatchObject({
       step: 'summary',
@@ -85,7 +85,7 @@ describe('submitDetails', () => {
   it('leaves no trace of the card in the store', async () => {
     const { store } = setup()
 
-    await store.dispatch(submitDetails(values))
+    await store.dispatch(submitDetails(values, 3))
 
     const saved = JSON.stringify(store.getState())
     expect(saved).not.toContain('4242424242424242')
@@ -108,7 +108,7 @@ describe('submitDetails', () => {
       }),
     )
 
-    await store.dispatch(submitDetails(values))
+    await store.dispatch(submitDetails(values, 3))
 
     expect(store.getState().checkout).toMatchObject({
       step: 'details',

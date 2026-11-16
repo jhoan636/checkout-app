@@ -94,7 +94,8 @@ export const pay = createAsyncThunk<Transaction, void, ThunkConfig>(
   'transaction/pay',
   async (_, { getState, dispatch, extra, rejectWithValue }) => {
     const { checkout, payment, transaction } = getState()
-    const { productId, quantity, customer, delivery, cardToken } = checkout
+    const { productId, quantity, customer, delivery, cardToken, installments } =
+      checkout
     const { acceptance } = payment
     if (!productId || !customer || !delivery || !cardToken || !acceptance) {
       return rejectWithValue({ message: FALLBACK_ERROR, retryable: false })
@@ -114,7 +115,7 @@ export const pay = createAsyncThunk<Transaction, void, ThunkConfig>(
       delivery,
       payment: {
         cardToken,
-        installments: 1,
+        installments,
         acceptanceToken: acceptance.acceptanceToken,
         personalDataAuthToken: acceptance.personalDataAuthToken,
       },
