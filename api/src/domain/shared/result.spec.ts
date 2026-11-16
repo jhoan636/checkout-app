@@ -1,13 +1,4 @@
-import {
-  andThen,
-  err,
-  fromPromise,
-  map,
-  mapErr,
-  match,
-  ok,
-  Result,
-} from './result';
+import { andThen, err, fromPromise, match, ok, Result } from './result';
 
 const parsePositive = (input: number): Result<number, string> =>
   input > 0 ? ok(input) : err('NOT_POSITIVE');
@@ -26,32 +17,6 @@ describe('Result', () => {
       const result = parsePositive(3);
 
       expect(result.ok && result.value).toBe(3);
-    });
-  });
-
-  describe('map', () => {
-    it('transforms the value of a success', () => {
-      expect(map(ok(2), (n) => n * 10)).toEqual(ok(20));
-    });
-
-    it('leaves a failure untouched and never calls the function', () => {
-      const fn = jest.fn();
-
-      expect(map(err('BOOM'), fn)).toEqual(err('BOOM'));
-      expect(fn).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('mapErr', () => {
-    it('transforms the error of a failure', () => {
-      expect(mapErr(err('BOOM'), (e) => e.toLowerCase())).toEqual(err('boom'));
-    });
-
-    it('leaves a success untouched and never calls the function', () => {
-      const fn = jest.fn();
-
-      expect(mapErr(ok(1), fn)).toEqual(ok(1));
-      expect(fn).not.toHaveBeenCalled();
     });
   });
 

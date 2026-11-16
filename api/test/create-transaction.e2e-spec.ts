@@ -111,7 +111,7 @@ describe('Create transaction against the database (e2e)', () => {
     await app.close();
   });
 
-  it('approved: stores everything, decreases stock once and assigns the delivery', async () => {
+  it('approved: stores everything, takes the units once and assigns the delivery', async () => {
     gateway.answer = ok({
       id: `gw-${Date.now()}-a`,
       status: 'APPROVED',

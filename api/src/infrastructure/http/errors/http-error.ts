@@ -1,4 +1,5 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { match, Result } from '../../../domain/shared/result';
 
 interface ErrorResponse {
   readonly status: HttpStatus;
@@ -50,3 +51,18 @@ export const httpErrorFor = (code: string): HttpException => {
     status,
   );
 };
+
+/**
+ * Where a use case leaves the railway: a success becomes the body of the
+ * response, a failure becomes its HTTP error.
+ */
+export const respond = <T, R>(
+  result: Result<T, string>,
+  present: (value: T) => R,
+): R =>
+  match(result, {
+    ok: present,
+    err: (code) => {
+      throw httpErrorFor(code);
+    },
+  });

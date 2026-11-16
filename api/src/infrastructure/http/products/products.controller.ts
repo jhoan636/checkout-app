@@ -13,7 +13,7 @@ import {
   PaymentSummaryResponse,
   ProductResponse,
 } from '../docs/responses.dto';
-import { httpErrorFor } from '../errors/http-error';
+import { respond } from '../errors/http-error';
 import { QuantityQueryDto } from '../transactions/create-transaction.dto';
 
 const NOT_FOUND = 'The product does not exist.';
@@ -25,7 +25,7 @@ export class ProductsController {
   constructor(private readonly products: ProductQueries) {}
 
   @Get()
-  @ApiOperation({ summary: 'List the products with their stock' })
+  @ApiOperation({ summary: 'List what the store sells, with its stock' })
   @ApiOkResponse({ type: ProductResponse, isArray: true })
   findAll(): Promise<ProductResponse[]> {
     return this.products.list();
@@ -42,11 +42,7 @@ export class ProductsController {
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<ProductResponse> {
-    const result = await this.products.get(id);
-    if (!result.ok) {
-      throw httpErrorFor(result.error);
-    }
-    return result.value;
+    return respond(await this.products.get(id), (product) => product);
   }
 
   @Get(':id/payment-summary')
@@ -70,10 +66,13 @@ export class ProductsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: QuantityQueryDto,
   ): Promise<PaymentSummaryResponse> {
-    const result = await this.products.quote(id, query.quantity);
-    if (!result.ok) {
-      throw httpErrorFor(result.error);
-    }
-    return { productId: id, quantity: query.quantity, ...result.value };
+    return respond(
+      await this.products.quote(id, query.quantity),
+      (summary) => ({
+        productId: id,
+        quantity: query.quantity,
+        ...summary,
+      }),
+    );
   }
 }

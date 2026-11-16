@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/jhoan636/checkout-app/actions/workflows/ci.yml/badge.svg)](https://github.com/jhoan636/checkout-app/actions/workflows/ci.yml)
 
-A store that sells one product with a credit card checkout. The customer sees the product and its stock, enters card and delivery data, reviews a payment summary, pays through an external payment gateway (sandbox) and gets the final status. Stock is updated once the payment is resolved.
+A store that sells one product with a credit card checkout. The customer sees the product and its stock, enters card and delivery data, reviews a payment summary, pays through an external payment gateway (sandbox) and gets the final status. The units are taken out of the stock when the purchase starts and go back on sale if the payment fails.
 
 > The five steps of the checkout and the API are complete. The cloud deployment is the only part still pending; see [Progress](#progress).
 
@@ -12,7 +12,6 @@ A store that sells one product with a credit card checkout. The customer sees th
 |---|---|
 | `api/` | REST API in NestJS + TypeScript, hexagonal architecture (ports and adapters) and Railway Oriented Programming |
 | `web/` | SPA in React + TypeScript + Redux Toolkit, mobile first |
-| `infra/` | AWS infrastructure as code (CDK), added with the deployment |
 
 Each app is independent: its own `package.json`, tests and deployment.
 
@@ -73,8 +72,10 @@ Every error has the same shape, with a stable code in `error`:
 | `401` | `UNAUTHORIZED` (webhook with a wrong signature) |
 | `404` | `PRODUCT_NOT_FOUND`, `TRANSACTION_NOT_FOUND`, `NOT_FOUND` |
 | `409` | `INSUFFICIENT_STOCK` |
+| `413` | `PAYLOAD_TOO_LARGE` |
 | `422` | `INVALID_QUANTITY`, `INVALID_AMOUNT` |
 | `429` | `TOO_MANY_REQUESTS` |
+| `500` | `INTERNAL_ERROR` (the message never reveals the cause) |
 
 ## Architecture
 
@@ -86,7 +87,7 @@ The API follows hexagonal architecture. Dependencies point inwards only.
 | Application | `api/src/application` | Use cases and the ports (interfaces) they need: repositories, payment gateway, clock, id generator |
 | Infrastructure | `api/src/infrastructure` | Adapters: HTTP controllers, PostgreSQL repositories (TypeORM), payment gateway client, configuration |
 
-Use cases never throw for an expected failure. They return a `Result<T, E>`, and the steps that can fail are chained with `andThen` (Railway Oriented Programming): each step runs only if the one before succeeded, and the first failure is the answer. Every error path is visible in the types. Controllers translate each error into an HTTP status in one place (`api/src/infrastructure/http/errors`).
+Use cases never throw for an expected failure. They return a `Result<T, E>`, and the steps that can fail are chained with `andThen` (Railway Oriented Programming): each step runs only if the one before succeeded, and the first failure is the answer. Every error path is visible in the types. Controllers leave the railway with `match`: a success becomes the response and a failure becomes its HTTP status, in one place (`api/src/infrastructure/http/errors`).
 
 ```ts
 // api/src/application/use-cases/create-transaction.use-case.ts
@@ -221,9 +222,9 @@ Results on 2026-11-16:
 
 | App | Tests | Statements | Branches | Functions | Lines |
 |---|---|---|---|---|---|
-| `api/` (unit) | 386 | 99.3% | 93.59% | 97.87% | 99.3% |
+| `api/` (unit) | 385 | 99.3% | 93.45% | 97.87% | 99.3% |
 | `api/` (end-to-end, real PostgreSQL) | 23 | – | – | – | – |
-| `web/` (unit) | 308 | 100% | 99.11% | 100% | 100% |
+| `web/` (unit) | 309 | 100% | 99.11% | 100% | 100% |
 
 To reproduce them, run `npm run test:cov` inside `api/` and inside `web/`.
 
@@ -284,7 +285,7 @@ The API must be running, and its `CORS_ORIGINS` must include the web origin (the
 - A purchase keeps its units reserved while it is `PENDING`. If the gateway cannot be reached for a long time, those units stay out of the stock until it answers.
 - There is no login. Each purchase creates a new customer row, and the customer and delivery of a purchase are protected only by knowing its id. A store with accounts would check who is asking.
 - The circuit breaker and the rate limit keep their state in memory, so each instance of the API has its own.
-- `npm audit` reports 3 moderate findings in a transitive dependency of TypeORM; the fix requires the next major version.
+- `npm audit --omit=dev` reports 3 moderate findings in the API, in a transitive dependency of TypeORM whose fix requires the next major version, and none in the web app. The full `npm audit` lists more (29 in `api/`, 19 in `web/`), all low or moderate and all in development tools that are not part of what is deployed.
 
 ## Credits
 

@@ -61,7 +61,7 @@ describe('TransactionSettlement', () => {
     expect(products.stockOf('prod-1')).toBe(3);
   });
 
-  it('settles an approved payment once: stock, delivery and status', async () => {
+  it('settles an approved payment: status, delivery, and the units stay taken', async () => {
     const { settlement, products, transactions } = await setup();
 
     const result = await settlement.apply(pending, approved);
@@ -75,7 +75,7 @@ describe('TransactionSettlement', () => {
     expect(transactions.deliveries.get('tx-1')).toBe('ASSIGNED');
   });
 
-  it('does not decrease the stock twice for a repeated answer', async () => {
+  it('does not touch the stock again for a repeated answer', async () => {
     const { settlement, products } = await setup();
 
     await settlement.apply(pending, approved);

@@ -5,7 +5,7 @@ import { DOCS_PATH } from '../configure-app';
 const DESCRIPTION = [
   'Single-product store with a credit card checkout.',
   '',
-  '**Flow:** list products, ask for the payment summary, create the',
+  '**Flow:** read the product, ask for the payment summary, create the',
   'transaction, then read it until its status is final.',
   '',
   '**Card data never reaches this API.** The browser exchanges the card for a',
