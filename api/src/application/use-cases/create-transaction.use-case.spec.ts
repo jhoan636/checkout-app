@@ -210,17 +210,20 @@ describe('CreateTransactionUseCase', () => {
   });
 
   describe('when the gateway fails', () => {
-    it('marks the transaction as ERROR when the request was refused', async () => {
-      const { useCase, gateway, products } = setup();
-      gateway.answer = err('GATEWAY_REJECTED');
+    it.each<GatewayError>(['GATEWAY_REJECTED', 'GATEWAY_NOT_CALLED'])(
+      'marks the transaction as ERROR on %s: nothing was charged',
+      async (error) => {
+        const { useCase, gateway, products } = setup();
+        gateway.answer = err(error);
 
-      const result = await useCase.execute(command);
+        const result = await useCase.execute(command);
 
-      expect(result).toMatchObject({
-        value: { status: 'ERROR', gatewayTransactionId: null },
-      });
-      expect(products.stockOf('prod-1')).toBe(3);
-    });
+        expect(result).toMatchObject({
+          value: { status: 'ERROR', gatewayTransactionId: null },
+        });
+        expect(products.stockOf('prod-1')).toBe(3);
+      },
+    );
 
     it.each<GatewayError>(['GATEWAY_UNAVAILABLE', 'GATEWAY_INVALID_RESPONSE'])(
       'keeps the transaction PENDING on %s, because the outcome is unknown',

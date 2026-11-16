@@ -8,6 +8,11 @@ import {
 } from '../../domain/transaction/transaction';
 import { TransactionStatus } from '../../domain/transaction/transaction-status';
 
+const NOTHING_CHARGED: GatewayError[] = [
+  'GATEWAY_REJECTED',
+  'GATEWAY_NOT_CALLED',
+];
+
 /**
  * Applies what the gateway said about a payment. Shared by every path that
  * learns a status: the first charge, a later status query and the webhook.
@@ -24,9 +29,10 @@ export class TransactionSettlement {
     answer: Result<GatewayTransaction, GatewayError>,
   ): Promise<Transaction> {
     if (!answer.ok) {
-      // A refused request charged nothing. Any other failure leaves the
-      // outcome unknown, so the transaction stays PENDING to be asked again.
-      return answer.error === 'GATEWAY_REJECTED'
+      // A request that was refused or never sent charged nothing. Any other
+      // failure leaves the outcome unknown, so the transaction stays PENDING
+      // to be asked again.
+      return NOTHING_CHARGED.includes(answer.error)
         ? this.settle(transaction, 'ERROR', null)
         : transaction;
     }
