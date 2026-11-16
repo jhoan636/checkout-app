@@ -6,6 +6,7 @@ module.exports = {
     __API_URL__: 'https://api.test',
     __GATEWAY_URL__: 'https://gateway.test/v1',
     __GATEWAY_PUBLIC_KEY__: 'pub_test_key',
+    __DEV_TOOLS__: false,
   },
   roots: ['<rootDir>/src'],
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],

@@ -34,7 +34,7 @@ describe('payment gateway client', () => {
       expect(result).toEqual({ ok: true, data: { token: 'tok_test_1' } })
       expect(fetchMock).toHaveBeenCalledWith(
         'https://gateway.test/v1/tokens/cards',
-        {
+        expect.objectContaining({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -47,7 +47,7 @@ describe('payment gateway client', () => {
             exp_year: '28',
             card_holder: 'Ana Maria Perez',
           }),
-        },
+        }),
       )
     })
 

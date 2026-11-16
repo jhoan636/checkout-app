@@ -117,6 +117,27 @@ describe('DetailsModal', () => {
     })
   })
 
+  it('tells assistive technology which fields are required', () => {
+    renderModal()
+
+    const required = [
+      'Card number',
+      'Name on card',
+      'Expiry date',
+      'Security code',
+      'Full name',
+      'Email',
+      'Phone',
+      'Address',
+      'City',
+      'State / Department',
+    ]
+    for (const label of required) {
+      expect(field(label)).toBeRequired()
+    }
+    expect(field('Postal code (optional)')).not.toBeRequired()
+  })
+
   describe('validation', () => {
     it('explains every missing field and stays on the form', async () => {
       const user = userEvent.setup()

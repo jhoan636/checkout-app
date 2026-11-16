@@ -36,6 +36,17 @@ describe('buildTypeOrmOptions', () => {
     });
   });
 
+  it('limits the pool and how long a connection or a statement can take', () => {
+    expect(buildTypeOrmOptions(configWith())).toMatchObject({
+      extra: {
+        max: 10,
+        connectionTimeoutMillis: 5_000,
+        idleTimeoutMillis: 30_000,
+        statement_timeout: 10_000,
+      },
+    });
+  });
+
   it('never lets the ORM change the schema on its own', () => {
     expect(buildTypeOrmOptions(configWith())).toMatchObject({
       synchronize: false,

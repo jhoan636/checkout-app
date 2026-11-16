@@ -44,6 +44,8 @@ type TextFieldProps = InputHTMLAttributes<HTMLInputElement> & {
   name: DetailsField
   label: string
   error?: string
+  /** Every field is required unless it says otherwise. */
+  optional?: boolean
   adornment?: ReactNode
   inputRef: (element: HTMLInputElement | null) => void
 }
@@ -52,6 +54,7 @@ function TextField({
   name,
   label,
   error,
+  optional = false,
   adornment,
   inputRef,
   ...input
@@ -67,6 +70,7 @@ function TextField({
           id={id}
           name={name}
           ref={inputRef}
+          aria-required={!optional}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
         />
@@ -264,6 +268,7 @@ export function DetailsModal({ now }: { now?: Date }) {
             <TextField
               {...bind('postalCode')}
               label="Postal code (optional)"
+              optional
               autoComplete="postal-code"
               maxLength={12}
             />

@@ -118,6 +118,7 @@ describe('GetTransactionUseCase', () => {
     'GATEWAY_UNAVAILABLE',
     'GATEWAY_REJECTED',
     'GATEWAY_INVALID_RESPONSE',
+    'GATEWAY_NOT_CALLED',
   ])(
     'keeps the transaction PENDING when the query fails with %s',
     async (failure) => {

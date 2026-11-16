@@ -81,6 +81,7 @@ Use cases never throw for an expected failure. They return a `Result<T, E>` and 
 - When a payment is approved, the status change, the stock decrement and the delivery assignment happen in a single database transaction.
 - The `Idempotency-Key` header is the transaction id: sending the same request twice returns the same transaction and never charges twice.
 - The gateway usually answers `PENDING` first. The final status arrives through the webhook or by asking `GET /transactions/:id` again.
+- A circuit breaker protects the API from a gateway that is down: after 5 timeouts or `5xx` answers in a row the gateway is not called for 30 seconds, and then a single trial call decides whether to resume. A purchase made in that window ends as `ERROR` at once, because nothing was sent and nothing was charged.
 
 ## Data model
 
@@ -165,7 +166,7 @@ Use any future expiry date, any 3-digit security code and any name of 5 characte
 
 ## Recovering progress after a refresh
 
-The checkout keeps a small snapshot in `localStorage`, so a refresh does not send the customer back to the start.
+The checkout keeps a small snapshot in `sessionStorage`, so a refresh does not send the customer back to the start. The browser deletes it when the tab is closed.
 
 | Refresh on | The app comes back to |
 |---|---|
@@ -189,9 +190,9 @@ Results on 2026-11-15:
 
 | App | Tests | Statements | Branches | Functions | Lines |
 |---|---|---|---|---|---|
-| `api/` (unit) | 327 | 99.15% | 92.18% | 98.34% | 99.15% |
+| `api/` (unit) | 345 | 99.2% | 92.71% | 97.7% | 99.2% |
 | `api/` (end-to-end, real PostgreSQL) | 22 | – | – | – | – |
-| `web/` (unit) | 293 | 100% | 99.07% | 100% | 100% |
+| `web/` (unit) | 299 | 100% | 99.09% | 100% | 100% |
 
 To reproduce them, run `npm run test:cov` inside `api/` and inside `web/`.
 
@@ -236,18 +237,21 @@ The API must be running, and its `CORS_ORIGINS` must include the web origin (the
 
 ## Security
 
-- The card number, expiry date and security code stay in the memory of the form while it is open. They are never written to the Redux store, to `localStorage` or to a log; the store keeps only the brand and the last four digits.
+- The card number, expiry date and security code stay in the memory of the form while it is open. They are never written to the Redux store, to browser storage or to a log; the store keeps only the brand and the last four digits.
 - The API has no field for card data: it receives a card token only. Tokenization happens in the browser, directly with the gateway and its public key.
 - Private keys and secrets live only in environment variables, never in the repository.
 - Webhook events are accepted only if their checksum matches, compared in constant time.
 - HTTP security headers (helmet) with a strict Content Security Policy, `Cache-Control: no-store`, a CORS allow-list and a rate limit per client.
 - Request bodies are validated against a whitelist: unknown fields are rejected.
+- Calls to the gateway have a timeout and a circuit breaker; calls from the browser are cancelled after 15 seconds; the database pool has a size, a connection timeout and a statement timeout.
+- Redux DevTools are disabled in the production build.
 - Request logs contain no bodies, headers or identifiers. Customer email and phone are returned masked.
 
 ## Known limitations
 
 - A payment approved when the last unit was sold in the meantime stays `APPROVED` with its delivery unassigned; it needs a manual refund.
 - A `PENDING` transaction that never received a gateway id is resolved only by the webhook.
+- The circuit breaker and the rate limit keep their state in memory, so each instance of the API has its own.
 - There is no login. Each purchase creates a new customer row.
 - `npm audit` reports 3 moderate findings in a transitive dependency of TypeORM; the fix requires the next major version.
 

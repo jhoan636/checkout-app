@@ -116,6 +116,15 @@ describe('TransactionSettlement', () => {
     expect(assign).not.toHaveBeenCalled();
   });
 
+  it('marks the transaction as ERROR when the gateway was not called', async () => {
+    const { settlement, transactions } = await setup();
+
+    const result = await settlement.apply(pending, err('GATEWAY_NOT_CALLED'));
+
+    expect(result.status).toBe('ERROR');
+    expect((await transactions.findById('tx-1'))?.status).toBe('ERROR');
+  });
+
   it('leaves the transaction PENDING when the gateway is unavailable', async () => {
     const { settlement, transactions } = await setup();
 

@@ -31,7 +31,12 @@ export type GatewayError =
   /** The gateway refused the request (4xx): nothing was charged. */
   | 'GATEWAY_REJECTED'
   /** The gateway answered something this application cannot interpret. */
-  | 'GATEWAY_INVALID_RESPONSE';
+  | 'GATEWAY_INVALID_RESPONSE'
+  /**
+   * The request was never sent, to leave alone a gateway that keeps failing:
+   * nothing was charged.
+   */
+  | 'GATEWAY_NOT_CALLED';
 
 /** Port: what the application needs from the external payment gateway. */
 export interface PaymentGateway {
