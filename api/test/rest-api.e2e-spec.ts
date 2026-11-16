@@ -192,6 +192,31 @@ describe('REST API (e2e)', () => {
       await http().post('/transactions').send(purchase()).expect(400);
     });
 
+    it('answers 413 with the usual shape for a body that is too large', async () => {
+      await http()
+        .post('/transactions')
+        .set('Idempotency-Key', randomUUID())
+        .send({ padding: 'x'.repeat(300_000) })
+        .expect(413)
+        .expect({
+          statusCode: 413,
+          error: 'PAYLOAD_TOO_LARGE',
+          message: 'The request body is too large.',
+        });
+    });
+
+    it('answers 400 with the usual shape for a body that is not JSON', async () => {
+      await http()
+        .post('/transactions')
+        .set('Idempotency-Key', randomUUID())
+        .set('Content-Type', 'application/json')
+        .send('{ "productId": ')
+        .expect(400)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({ statusCode: 400, error: 'BAD_REQUEST' });
+        });
+    });
+
     it('answers 400 for an invalid body and stores nothing', async () => {
       const response = await http()
         .post('/transactions')
