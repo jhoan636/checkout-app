@@ -17,6 +17,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { HandleGatewayEventUseCase } from '../../../application/use-cases/handle-gateway-event.use-case';
 import { Env } from '../../config/env.validation';
 import { parseGatewayEvent } from '../../gateway/gateway-event';
+import { WebhookAckResponse } from '../docs/responses.dto';
 
 export interface WebhookAck {
   received: true;
@@ -47,7 +48,10 @@ export class GatewayWebhookController {
       'Only events whose checksum matches the shared events secret are ' +
       'accepted. Receiving the same event again has no effect.',
   })
-  @ApiOkResponse({ description: 'Event acknowledged.' })
+  @ApiOkResponse({
+    type: WebhookAckResponse,
+    description: 'Event acknowledged.',
+  })
   @ApiUnauthorizedResponse({ description: 'The signature is not valid.' })
   async receive(@Body() body: unknown): Promise<WebhookAck> {
     const event = parseGatewayEvent(
