@@ -19,18 +19,6 @@ export const ok = <T>(value: T): Ok<T> => ({ ok: true, value });
 
 export const err = <E>(error: E): Err<E> => ({ ok: false, error });
 
-/** Transforms the value of a success; a failure passes through. */
-export const map = <T, U, E>(
-  result: Result<T, E>,
-  fn: (value: T) => U,
-): Result<U, E> => (result.ok ? ok(fn(result.value)) : result);
-
-/** Transforms the error of a failure; a success passes through. */
-export const mapErr = <T, E, F>(
-  result: Result<T, E>,
-  fn: (error: E) => F,
-): Result<T, F> => (result.ok ? result : err(fn(result.error)));
-
 /** Chains a step that can fail; it only runs if the result is a success. */
 export const andThen = <T, U, E, F>(
   result: Result<T, E>,

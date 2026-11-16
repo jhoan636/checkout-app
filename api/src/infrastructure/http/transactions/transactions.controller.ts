@@ -31,7 +31,7 @@ import {
   ErrorResponse,
   TransactionResponse,
 } from '../docs/responses.dto';
-import { httpErrorFor } from '../errors/http-error';
+import { respond } from '../errors/http-error';
 import { CreateTransactionDto } from './create-transaction.dto';
 import {
   presentCustomer,
@@ -100,30 +100,29 @@ export class TransactionsController {
       });
     }
 
-    const result = await this.createTransaction.execute({
-      idempotencyKey,
-      productId: body.productId,
-      quantity: body.quantity,
-      customer: {
-        fullName: body.customer.fullName,
-        email: body.customer.email,
-        phone: body.customer.phone,
-      },
-      delivery: {
-        addressLine: body.delivery.addressLine,
-        city: body.delivery.city,
-        region: body.delivery.region,
-        postalCode: body.delivery.postalCode ?? null,
-      },
-      cardToken: body.payment.cardToken,
-      installments: body.payment.installments,
-      acceptanceToken: body.payment.acceptanceToken,
-      personalDataAuthToken: body.payment.personalDataAuthToken,
-    });
-    if (!result.ok) {
-      throw httpErrorFor(result.error);
-    }
-    return presentTransaction(result.value);
+    return respond(
+      await this.createTransaction.execute({
+        idempotencyKey,
+        productId: body.productId,
+        quantity: body.quantity,
+        customer: {
+          fullName: body.customer.fullName,
+          email: body.customer.email,
+          phone: body.customer.phone,
+        },
+        delivery: {
+          addressLine: body.delivery.addressLine,
+          city: body.delivery.city,
+          region: body.delivery.region,
+          postalCode: body.delivery.postalCode ?? null,
+        },
+        cardToken: body.payment.cardToken,
+        installments: body.payment.installments,
+        acceptanceToken: body.payment.acceptanceToken,
+        personalDataAuthToken: body.payment.personalDataAuthToken,
+      }),
+      presentTransaction,
+    );
   }
 
   @Get(':id')
@@ -139,11 +138,7 @@ export class TransactionsController {
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<TransactionResponse> {
-    const result = await this.getTransaction.execute(id);
-    if (!result.ok) {
-      throw httpErrorFor(result.error);
-    }
-    return presentTransaction(result.value);
+    return respond(await this.getTransaction.execute(id), presentTransaction);
   }
 
   @Get(':id/customer')
@@ -157,11 +152,7 @@ export class TransactionsController {
   async findCustomer(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CustomerResponse> {
-    const result = await this.getOrderDetails.execute(id);
-    if (!result.ok) {
-      throw httpErrorFor(result.error);
-    }
-    return presentCustomer(result.value);
+    return respond(await this.getOrderDetails.execute(id), presentCustomer);
   }
 
   @Get(':id/delivery')
@@ -172,10 +163,6 @@ export class TransactionsController {
   async findDelivery(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<DeliveryResponse> {
-    const result = await this.getOrderDetails.execute(id);
-    if (!result.ok) {
-      throw httpErrorFor(result.error);
-    }
-    return presentDelivery(result.value);
+    return respond(await this.getOrderDetails.execute(id), presentDelivery);
   }
 }
