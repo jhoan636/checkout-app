@@ -152,6 +152,17 @@ The form helps the customer type the card correctly before anything is sent. The
 
 The rules live in `web/src/lib/card.ts`.
 
+### Cards that work in the sandbox
+
+The gateway's test environment only accepts two card numbers. Any other number, MasterCard included, is refused when the card is tokenized, and the form answers "The card was not accepted".
+
+| Card number | Result of the payment |
+|---|---|
+| `4242 4242 4242 4242` | Approved |
+| `4111 1111 1111 1111` | Declined |
+
+Use any future expiry date, any 3-digit security code and any name of 5 characters or more.
+
 ## Recovering progress after a refresh
 
 The checkout keeps a small snapshot in `localStorage`, so a refresh does not send the customer back to the start.
