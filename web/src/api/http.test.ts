@@ -1,4 +1,4 @@
-import { createHttp } from './http'
+import { createHttp, REQUEST_TIMEOUT_MS } from './http'
 
 const jsonResponse = (status: number, body: unknown) =>
   ({
@@ -31,11 +31,14 @@ describe('createHttp', () => {
       'Idempotency-Key': 'key-1',
     })
 
-    expect(fetchMock).toHaveBeenCalledWith('https://api.test/transactions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'key-1' },
-      body: '{"quantity":1}',
-    })
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/transactions',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'key-1' },
+        body: '{"quantity":1}',
+      }),
+    )
   })
 
   it('returns the error code and message sent by the API', async () => {
@@ -103,6 +106,56 @@ describe('createHttp', () => {
         code: 'NETWORK_ERROR',
         message: 'Check your connection and try again.',
       },
+    })
+  })
+
+  describe('when the server does not answer', () => {
+    /** A request that only ends when it is cancelled, like a hung server. */
+    const hangingFetch = () =>
+      jest.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () =>
+              reject(new DOMException('Aborted', 'AbortError')),
+            )
+          }),
+      )
+
+    beforeEach(() => jest.useFakeTimers())
+    afterEach(() => jest.useRealTimers())
+
+    it('cancels the request and reports TIMEOUT', async () => {
+      const result = setup(hangingFetch()).get('/products')
+
+      await jest.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS)
+
+      await expect(result).resolves.toEqual({
+        ok: false,
+        error: {
+          status: 0,
+          code: 'TIMEOUT',
+          message: 'The request took too long. Try again.',
+        },
+      })
+    })
+
+    it('keeps waiting until the time is over', async () => {
+      const fetchMock = hangingFetch()
+      const settled = jest.fn()
+      void setup(fetchMock).get('/products').then(settled)
+
+      await jest.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS - 1)
+
+      expect(settled).not.toHaveBeenCalled()
+      expect(fetchMock.mock.calls[0][1].signal?.aborted).toBe(false)
+    })
+
+    it('leaves no timer running after an answer', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(jsonResponse(200, {}))
+
+      await setup(fetchMock).get('/products')
+
+      expect(jest.getTimerCount()).toBe(0)
     })
   })
 
