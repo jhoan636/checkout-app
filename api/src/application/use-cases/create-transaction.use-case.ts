@@ -105,8 +105,9 @@ export class CreateTransactionUseCase {
     }
     const transaction = order.value;
 
-    // Stored as PENDING first: if the gateway call is lost, the purchase is
-    // still on record and can be resolved later.
+    // Stored as PENDING, with its units reserved, before the gateway is
+    // called: if that call is lost, the purchase is still on record and can
+    // be resolved later, and nobody is charged for units already taken.
     const stored = await this.transactions.createPending({
       transaction,
       customer: command.customer,
@@ -115,6 +116,10 @@ export class CreateTransactionUseCase {
     if (stored === 'DUPLICATE') {
       // A simultaneous request with the same key won; it does the charging.
       return ok((await this.transactions.findById(id)) ?? transaction);
+    }
+    if (stored === 'INSUFFICIENT_STOCK') {
+      // Another purchase reserved the units between the check and this one.
+      return err('INSUFFICIENT_STOCK');
     }
 
     const answer = await this.gateway.createCardTransaction({

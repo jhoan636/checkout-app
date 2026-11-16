@@ -97,7 +97,7 @@ describe('HandleGatewayEventUseCase', () => {
     await expect(
       useCase.execute({ ...approvedEvent, reference: 'ORDER-unknown' }),
     ).resolves.toBe('UNKNOWN_REFERENCE');
-    expect(products.stockOf('prod-1')).toBe(5);
+    expect(products.stockOf('prod-1')).toBe(3);
   });
 
   it('ignores an event whose amount differs from the purchase', async () => {
@@ -107,7 +107,7 @@ describe('HandleGatewayEventUseCase', () => {
       useCase.execute({ ...approvedEvent, amountInCents: 100 }),
     ).resolves.toBe('AMOUNT_MISMATCH');
     expect((await transactions.findById('tx-1'))?.status).toBe('PENDING');
-    expect(products.stockOf('prod-1')).toBe(5);
+    expect(products.stockOf('prod-1')).toBe(3);
   });
 
   it('stores the gateway id from a PENDING event without settling', async () => {
@@ -120,10 +120,10 @@ describe('HandleGatewayEventUseCase', () => {
       status: 'PENDING',
       gatewayTransactionId: 'gw-1',
     });
-    expect(products.stockOf('prod-1')).toBe(5);
+    expect(products.stockOf('prod-1')).toBe(3);
   });
 
-  it('stores DECLINED and keeps the stock', async () => {
+  it('stores DECLINED and puts the reserved units back on sale', async () => {
     const { useCase, products, transactions } = await setup();
 
     await expect(

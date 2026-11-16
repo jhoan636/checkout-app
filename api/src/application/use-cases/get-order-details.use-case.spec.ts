@@ -39,7 +39,14 @@ const delivery = {
 
 const setup = async () => {
   const transactions = new InMemoryTransactionRepository(
-    InMemoryProductRepository.with(),
+    InMemoryProductRepository.with({
+      id: 'prod-1',
+      name: 'Product',
+      description: 'A product',
+      priceInCents: 1_000_000,
+      stock: 5,
+      imageUrl: '/p.webp',
+    }),
   );
   await transactions.createPending({ transaction, customer, delivery });
   return new GetOrderDetailsUseCase(transactions);

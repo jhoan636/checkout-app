@@ -136,7 +136,7 @@ describe('Create transaction against the database (e2e)', () => {
     expect(await stock()).toBe(initialStock - 2);
   });
 
-  it('declined: keeps the stock and leaves the delivery pending', async () => {
+  it('declined: puts the reserved units back and leaves the delivery pending', async () => {
     const before = await stock();
     gateway.answer = ok({
       id: `gw-${Date.now()}-d`,
@@ -163,7 +163,8 @@ describe('Create transaction against the database (e2e)', () => {
       status: 'PENDING',
       gatewayTransactionId: null,
     });
-    expect(await stock()).toBe(before);
+    // Its units stay reserved until the payment is resolved.
+    expect(await stock()).toBe(before - 2);
   });
 
   it('pending answer: remembers the gateway id to ask again later', async () => {
@@ -176,5 +177,34 @@ describe('Create transaction against the database (e2e)', () => {
       status: 'PENDING',
       gatewayTransactionId: gatewayId,
     });
+  });
+
+  it('two buyers at once for the last units: only one is charged', async () => {
+    await dataSource.query('UPDATE products SET stock = 2 WHERE id = $1', [
+      PRODUCT_ID,
+    ]);
+    gateway.answer = ok({
+      id: `gw-${Date.now()}-race`,
+      status: 'PENDING',
+      reference: 'r',
+    });
+    const chargesBefore = gateway.charges.length;
+
+    const results = await Promise.all([
+      useCase.execute(command),
+      useCase.execute(command),
+    ]);
+    for (const result of results) {
+      if (result.ok) {
+        createdIds.push(result.value.id);
+      }
+    }
+
+    expect(results.filter((result) => result.ok)).toHaveLength(1);
+    expect(results.filter((result) => !result.ok)).toEqual([
+      err('INSUFFICIENT_STOCK'),
+    ]);
+    expect(gateway.charges).toHaveLength(chargesBefore + 1);
+    expect(await stock()).toBe(0);
   });
 });
