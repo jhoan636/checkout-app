@@ -67,12 +67,46 @@ aws s3 sync dist "s3://$BUCKET" --delete --exclude index.html \
 aws s3 cp dist/index.html "s3://$BUCKET/index.html" --cache-control 'no-cache'
 aws cloudfront create-invalidation --distribution-id "$(output WebDistributionId)" --paths '/*' >/dev/null
 
-# --- 5. Wait for the API (the first start compiles it on the instance) -------
+# --- 5. The API ---------------------------------------------------------------
+wait_for_api() {
+  for _ in $(seq 1 60); do
+    if curl -fsS "$API_URL/health" >/dev/null 2>&1; then return 0; fi
+    sleep 15
+  done
+  return 1
+}
+# The first start compiles the API on the instance: wait for it.
 echo "Waiting for the API..."
+wait_for_api
+
+# The instance builds the API only on its first start. On a later deployment
+# it is asked to fetch the new code, rebuild the image and restart; it does
+# nothing when it already runs that commit.
+INSTANCE=$(output ApiInstanceId)
+UPDATE=$(mktemp)
+cat > "$UPDATE" <<JSON
+{"commands": [
+  "set -e",
+  "export HOME=/root",
+  "cd /opt/checkout",
+  "git fetch -q --depth 1 origin '$GIT_REF'",
+  "if [ \"\$(git rev-parse HEAD)\" != \"\$(git rev-parse FETCH_HEAD)\" ]; then git checkout -q FETCH_HEAD; docker build -q -t checkout-api api; systemctl restart checkout-api; fi",
+  "git log -1 --format=%h"
+]}
+JSON
+COMMAND=$(aws ssm send-command --instance-ids "$INSTANCE" --document-name AWS-RunShellScript \
+  --parameters "file://$UPDATE" --query Command.CommandId --output text)
+echo "Updating the API on $INSTANCE..."
+invocation() {
+  aws ssm get-command-invocation --command-id "$COMMAND" --instance-id "$INSTANCE" --query "$1" --output text
+}
 for _ in $(seq 1 60); do
-  if curl -fsS "$API_URL/health" >/dev/null 2>&1; then break; fi
-  sleep 15
+  STATUS=$(invocation Status 2>/dev/null || echo Pending)
+  case "$STATUS" in Success | Failed | Cancelled | TimedOut) break ;; esac
+  sleep 10
 done
+echo "API on commit $(invocation StandardOutputContent | tail -n 1): $STATUS"
+wait_for_api
 curl -fsS "$API_URL/health" && echo
 
 echo "Web:     $WEB_URL"
