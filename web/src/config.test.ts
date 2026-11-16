@@ -6,6 +6,7 @@ describe('config', () => {
       apiUrl: 'https://api.test',
       gatewayUrl: 'https://gateway.test/v1',
       gatewayPublicKey: 'pub_test_key',
+      devTools: false,
     })
   })
 })

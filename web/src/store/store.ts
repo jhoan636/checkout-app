@@ -1,5 +1,6 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import type { ThunkAction, UnknownAction } from '@reduxjs/toolkit'
+import { config } from '../config'
 import { checkoutReducer } from './checkout.slice'
 import { paymentReducer } from './payment.slice'
 import { productsReducer } from './products.slice'
@@ -27,6 +28,8 @@ export const createAppStore = (
   configureStore({
     reducer: rootReducer,
     preloadedState: preloadedState as RootState | undefined,
+    // Off in production: the tools let anyone read and replay the state.
+    devTools: config.devTools,
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({ thunk: { extraArgument: services } }),
   })

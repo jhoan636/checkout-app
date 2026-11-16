@@ -6,4 +6,5 @@ export const config = {
   apiUrl: __API_URL__,
   gatewayUrl: __GATEWAY_URL__,
   gatewayPublicKey: __GATEWAY_PUBLIC_KEY__,
+  devTools: __DEV_TOOLS__,
 }
