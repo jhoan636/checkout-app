@@ -105,7 +105,7 @@ for _ in $(seq 1 60); do
   case "$STATUS" in Success | Failed | Cancelled | TimedOut) break ;; esac
   sleep 10
 done
-echo "API on commit $(invocation StandardOutputContent | tail -n 1): $STATUS"
+echo "API on commit $(invocation StandardOutputContent | tr -d '[:space:]'): $STATUS"
 wait_for_api
 curl -fsS "$API_URL/health" && echo
 
