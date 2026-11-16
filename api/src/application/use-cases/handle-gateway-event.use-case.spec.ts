@@ -73,7 +73,7 @@ describe('HandleGatewayEventUseCase', () => {
     expect(transactions.deliveries.get('tx-1')).toBe('ASSIGNED');
   });
 
-  it('is idempotent: a repeated event does not decrease the stock again', async () => {
+  it('is idempotent: a repeated event does not touch the stock again', async () => {
     const { useCase, products } = await setup();
 
     await useCase.execute(approvedEvent);

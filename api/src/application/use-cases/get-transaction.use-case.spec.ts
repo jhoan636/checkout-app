@@ -96,7 +96,7 @@ describe('GetTransactionUseCase', () => {
     expect(transactions.deliveries.get('tx-1')).toBe('ASSIGNED');
   });
 
-  it('decreases the stock only once, however many times it is asked', async () => {
+  it('settles only once, however many times it is asked, and the stock does not move', async () => {
     const { useCase, gateway, products } = await setup();
     gateway.answer = ok({ id: 'gw-1', status: 'APPROVED', reference: 'r' });
 
