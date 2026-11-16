@@ -147,7 +147,11 @@ export function StatusPage() {
               Try again
             </button>
           )}
-          {back}
+          {/*
+            While the outcome is unknown the only way forward is the same
+            purchase again: starting a new one could charge the card twice.
+          */}
+          {!retryable && back}
         </div>
       </Result>
     )
@@ -158,7 +162,7 @@ export function StatusPage() {
       <Result
         tone="wait"
         title="We are still confirming your payment"
-        text="Your bank has not answered yet. Check again in a moment. You will not be charged twice."
+        text="Your bank has not answered yet. Check again in a moment. Please do not start another purchase: this one may still be approved."
       >
         {details}
         <div className="status__actions">
@@ -169,7 +173,6 @@ export function StatusPage() {
           >
             Check again
           </button>
-          {back}
         </div>
       </Result>
     )

@@ -13,6 +13,7 @@ import { createAppStore } from './store'
 import {
   checkPayment,
   MAX_CHECKS,
+  MAX_SEARCHES,
   pay,
   POLL_INTERVAL_MS,
 } from './transaction.slice'
@@ -333,13 +334,50 @@ describe('transaction slice', () => {
       expect(store.getState().transaction.phase).toBe('unconfirmed')
     })
 
+    it('does not believe the first "not found": the request to pay may be on its way', async () => {
+      const getTransaction = jest.fn().mockResolvedValue(answer(pending))
+      const { store, wait } = await unconfirmed(getTransaction)
+      getTransaction.mockReset()
+      getTransaction
+        .mockResolvedValueOnce(failure(404, 'The transaction does not exist.'))
+        .mockResolvedValueOnce(failure(404, 'The transaction does not exist.'))
+        .mockResolvedValue(answer(approvedTransaction))
+      jest.mocked(wait).mockClear()
+
+      await store.dispatch(checkPayment())
+
+      expect(getTransaction).toHaveBeenCalledTimes(3)
+      expect(wait).toHaveBeenCalledTimes(2)
+      expect(wait).toHaveBeenCalledWith(POLL_INTERVAL_MS)
+      expect(store.getState().transaction).toMatchObject({
+        transaction: approvedTransaction,
+        phase: 'settled',
+      })
+    })
+
+    it('stops looking when a check does not get through, and decides nothing', async () => {
+      const getTransaction = jest.fn().mockResolvedValue(answer(pending))
+      const { store } = await unconfirmed(getTransaction)
+      getTransaction.mockReset()
+      getTransaction
+        .mockResolvedValueOnce(failure(404, 'The transaction does not exist.'))
+        .mockResolvedValue(failure(0, 'Check your connection.'))
+
+      await store.dispatch(checkPayment())
+
+      expect(getTransaction).toHaveBeenCalledTimes(2)
+      expect(store.getState().transaction.phase).toBe('unconfirmed')
+    })
+
     it('ends a payment the API never received, which was never charged', async () => {
       const getTransaction = jest.fn().mockResolvedValue(answer(pending))
       const { store } = await unconfirmed(getTransaction)
+      getTransaction.mockReset()
       getTransaction.mockResolvedValue(failure(404, 'The transaction does not exist.'))
 
       await store.dispatch(checkPayment())
 
+      expect(getTransaction).toHaveBeenCalledTimes(MAX_SEARCHES)
       expect(store.getState().transaction).toMatchObject({
         phase: 'failed',
         error:
