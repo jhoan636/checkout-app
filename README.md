@@ -370,11 +370,10 @@ The API must be running, and its `CORS_ORIGINS` must include the web origin (the
 The test encourages working with an AI coding assistant. This project was built with Claude Code as a pair programmer, and these were the rules of that work:
 
 - **Small steps, test first.** Each step was one behaviour: a failing test, the code that makes it pass, then lint, build and the whole suite.
-- **One branch and one pull request per feature**, with Conventional Commits. I opened and merged every pull request after reading it.
-- **I asked for the reason behind each decision**, and for each NestJS concept explained against what I already knew from Java and Spring. Nothing was merged that I could not explain.
-- **My own testing changed the design.** Running the app, I found that a declined payment left its delivery as `PENDING`, questioned why every purchase creates a customer row, and asked for a different desktop layout after comparing three drafts. Each one ended in a fix or in a documented decision.
+- **One branch and one pull request per feature**, with Conventional Commits.
+- **I made design decisions drawing on my Java background**, and had each NestJS concept explained against what I already knew from Java and Spring. Nothing was merged that I could not explain.
+- **My own testing changed the design.** It uncovered edge cases that were not validated and layouts that did not work. Each one ended in a fix or in a documented decision.
 - **A second, independent AI audited the project.** Its findings were weighed one by one: some were fixed (units reserved when the purchase starts, a payment that cannot be abandoned while it is unconfirmed), others were declined with a reason written down.
-- **Secrets stayed with me.** The keys of the gateway were typed by me into git-ignored files and into the cloud's parameter store; the assistant never wrote them into the repository.
 
 ## Known limitations
 
