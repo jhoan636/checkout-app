@@ -337,7 +337,7 @@ describe('TypeOrmTransactionRepository', () => {
     });
 
     it.each(['DECLINED', 'VOIDED', 'ERROR'] as const)(
-      'gives the reserved units back when the payment ends %s',
+      'gives the reserved units back and cancels the delivery when the payment ends %s',
       async (status) => {
         const { repository, manager } = setup();
 
@@ -350,8 +350,12 @@ describe('TypeOrmTransactionRepository', () => {
           'stock',
           2,
         );
-        // The delivery stays unassigned.
-        expect(manager.update).toHaveBeenCalledTimes(1);
+        // Nothing will be sent: the delivery is cancelled in the same step.
+        expect(manager.update).toHaveBeenCalledWith(
+          DeliveryOrmEntity,
+          { transactionId: id },
+          { status: 'CANCELLED' },
+        );
       },
     );
   });

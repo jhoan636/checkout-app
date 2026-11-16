@@ -2,10 +2,12 @@ import { useState } from 'react'
 import type { Product } from '../api/types'
 
 /**
- * A box reserved before the photo loads, so the page does not jump. The
- * stylesheet decides the size on screen and keeps the photo's proportions.
+ * The size of the photo file. Declaring it lets the browser reserve a box
+ * with the right proportions before the photo loads, so the page does not
+ * jump. The stylesheet decides the size on screen.
  */
-const PHOTO_SIZE = 480
+const PHOTO_WIDTH = 960
+const PHOTO_HEIGHT = 433
 
 /**
  * If the photo cannot load, nothing is drawn and the neutral frame around it
@@ -28,8 +30,8 @@ export function ProductPhoto({
       className={className}
       src={product.imageUrl}
       alt={product.name}
-      width={PHOTO_SIZE}
-      height={PHOTO_SIZE}
+      width={PHOTO_WIDTH}
+      height={PHOTO_HEIGHT}
       decoding="async"
       onError={() => setFailed(true)}
     />

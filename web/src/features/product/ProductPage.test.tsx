@@ -61,8 +61,9 @@ describe('ProductPage', () => {
       const image = screen.getByRole('img', { name: 'Glide Camera Drone' })
 
       expect(image).toHaveAttribute('src', '/products/glide-drone.webp')
-      expect(image).toHaveAttribute('width')
-      expect(image).toHaveAttribute('height')
+      // The size of the file, so the reserved box has its proportions.
+      expect(image).toHaveAttribute('width', '960')
+      expect(image).toHaveAttribute('height', '433')
     })
 
     it('keeps the page usable when the photo cannot be loaded', () => {

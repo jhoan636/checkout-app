@@ -114,8 +114,9 @@ export class DeliveryResponse {
   transactionId!: string;
 
   @ApiProperty({
-    enum: ['PENDING', 'ASSIGNED'],
-    description: 'ASSIGNED once the payment is approved.',
+    enum: ['PENDING', 'ASSIGNED', 'CANCELLED'],
+    description:
+      'ASSIGNED once the payment is approved, CANCELLED if it fails.',
   })
   status!: DeliveryStatus;
 

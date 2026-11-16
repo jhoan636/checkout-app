@@ -99,7 +99,7 @@ describe('TransactionSettlement', () => {
   });
 
   it.each(['DECLINED', 'VOIDED', 'ERROR'] as const)(
-    'puts the reserved units back on sale when the payment ends %s',
+    'puts the units back on sale and cancels the delivery when the payment ends %s',
     async (status) => {
       const { settlement, products, transactions } = await setup();
 
@@ -110,7 +110,7 @@ describe('TransactionSettlement', () => {
 
       expect(result).toMatchObject({ status });
       expect(products.stockOf('prod-1')).toBe(5);
-      expect(transactions.deliveries.get('tx-1')).toBe('PENDING');
+      expect(transactions.deliveries.get('tx-1')).toBe('CANCELLED');
     },
   );
 

@@ -4,7 +4,7 @@
 
 A store that sells one product with a credit card checkout. The customer sees the product and its stock, enters card and delivery data, reviews a payment summary, pays through an external payment gateway (sandbox) and gets the final status. Stock is updated once the payment is resolved.
 
-> Work in progress. The API is complete. The web app has the first two screens; the status of every part is listed in [Progress](#progress).
+> The five steps of the checkout and the API are complete. The cloud deployment is the only part still pending; see [Progress](#progress).
 
 ## Repository layout
 
@@ -61,6 +61,21 @@ Swagger UI is served by the API at `/docs` and the OpenAPI document at `/docs-js
 
 There is no endpoint to create products: the product is seeded by a database migration.
 
+Every error has the same shape, with a stable code in `error`:
+
+```json
+{ "statusCode": 409, "error": "INSUFFICIENT_STOCK", "message": "There are not enough units in stock." }
+```
+
+| Status | Codes |
+|---|---|
+| `400` | `VALIDATION_ERROR` (`message` is a list, one entry per problem), `INVALID_IDEMPOTENCY_KEY`, `BAD_REQUEST` |
+| `401` | `UNAUTHORIZED` (webhook with a wrong signature) |
+| `404` | `PRODUCT_NOT_FOUND`, `TRANSACTION_NOT_FOUND`, `NOT_FOUND` |
+| `409` | `INSUFFICIENT_STOCK` |
+| `422` | `INVALID_QUANTITY`, `INVALID_AMOUNT` |
+| `429` | `TOO_MANY_REQUESTS` |
+
 ## Architecture
 
 The API follows hexagonal architecture. Dependencies point inwards only.
@@ -71,16 +86,28 @@ The API follows hexagonal architecture. Dependencies point inwards only.
 | Application | `api/src/application` | Use cases and the ports (interfaces) they need: repositories, payment gateway, clock, id generator |
 | Infrastructure | `api/src/infrastructure` | Adapters: HTTP controllers, PostgreSQL repositories (TypeORM), payment gateway client, configuration |
 
-Use cases never throw for an expected failure. They return a `Result<T, E>` and are chained with `map` and `andThen` (Railway Oriented Programming), so every error path is visible in the types. Controllers translate each error into an HTTP status in one place.
+Use cases never throw for an expected failure. They return a `Result<T, E>`, and the steps that can fail are chained with `andThen` (Railway Oriented Programming): each step runs only if the one before succeeded, and the first failure is the answer. Every error path is visible in the types. Controllers translate each error into an HTTP status in one place (`api/src/infrastructure/http/errors`).
+
+```ts
+// api/src/application/use-cases/create-transaction.use-case.ts
+const order = andThen(
+  andThen(reserveStock(product, command.quantity), () =>
+    calculatePaymentSummary({ unitPriceInCents: product.priceInCents, quantity: command.quantity }, this.fees),
+  ),
+  (summary) => createPendingTransaction({ /* id, reference, amounts */ }),
+);
+```
 
 ## Business rules
 
 - Money is always an integer amount of cents; there are no decimals anywhere.
 - The amount to charge is computed by the API from the stored price and the fees. The browser never sends an amount.
 - A transaction is stored as `PENDING` before the gateway is called, and only moves from `PENDING` to `APPROVED`, `DECLINED`, `VOIDED` or `ERROR`.
-- When a payment is approved, the status change, the stock decrement and the delivery assignment happen in a single database transaction.
+- The units are reserved (taken out of the stock) in the same database transaction that stores the `PENDING` purchase, with `UPDATE … SET stock = stock - n WHERE stock >= n`. Two buyers can never be charged for the same last unit: the second one gets `409 INSUFFICIENT_STOCK` before any charge.
+- When a payment is approved, the status change and the delivery assignment (`PENDING` to `ASSIGNED`) happen in a single database transaction. When it ends as `DECLINED`, `VOIDED` or `ERROR`, the same transaction puts the reserved units back on sale and marks the delivery as `CANCELLED`, because nothing will be sent. Both happen at most once, however many times the result arrives.
 - The `Idempotency-Key` header is the transaction id: sending the same request twice returns the same transaction and never charges twice.
 - The gateway usually answers `PENDING` first. The final status arrives through the webhook or by asking `GET /transactions/:id` again.
+- If the answer to the charge is lost (a timeout, a restart), the purchase is looked up in the gateway by its reference. If the gateway knows it, its status is applied; if two minutes later the gateway still does not know it, the charge never arrived: the purchase ends as `ERROR` and its units are released.
 - A circuit breaker protects the API from a gateway that is down: after 5 timeouts or `5xx` answers in a row the gateway is not called for 30 seconds, and then a single trial call decides whether to resume. A purchase made in that window ends as `ERROR` at once, because nothing was sent and nothing was charged.
 
 ## Data model
@@ -131,13 +158,15 @@ erDiagram
         varchar city
         varchar region
         varchar postal_code "optional"
-        varchar status "PENDING, ASSIGNED"
+        varchar status "PENDING, ASSIGNED, CANCELLED"
         timestamptz created_at
         timestamptz updated_at
     }
 ```
 
 The schema only changes through SQL migrations, which run when the API starts. Card data is not part of the model: it is never stored.
+
+Each purchase stores its own customer row, even when the same person buys again. There is no login, so an email that is typed proves nothing about who is buying: reusing a row by email would attach a purchase to somebody else's record, or let a stranger overwrite their name and phone. A purchase also has to keep the contact details it was made with. With accounts and a verified email, a customer would be a single row and each order would keep its own copy.
 
 ## Card validation in the browser
 
@@ -150,6 +179,7 @@ The form helps the customer type the card correctly before anything is sent. The
 | Check digit | Luhn algorithm, which catches a mistyped digit |
 | Expiry date | `MM/YY`, valid until the end of that month |
 | Security code | 3 digits |
+| Installments | 1, 2, 3, 6, 12, 24 or 36 monthly payments; the API accepts 1 to 36 |
 
 The rules live in `web/src/lib/card.ts`.
 
@@ -178,7 +208,8 @@ The checkout keeps a small snapshot in `sessionStorage`, so a refresh does not s
 - The snapshot holds the step, the product, the units, the contact and delivery details and the id of a payment already sent. It never holds the card, its token or anything the gateway answered.
 - It expires after 30 minutes and is removed when the purchase ends.
 - Storage can be edited by hand, so every field is validated when it is read; anything unexpected discards the whole snapshot.
-- If the API does not know the saved payment, the request never arrived: the app says the card was not charged and lets the customer start again.
+- If the API does not know the saved payment, it is looked for a few more times, because the request to pay may still be on its way. Only then the app says the card was not charged and lets the customer start again.
+- While a payment is not confirmed, the status screen offers only to check it again. It does not offer a new purchase, which could end in a second charge.
 
 The rules live in `web/src/store/persistence.ts`.
 
@@ -186,13 +217,13 @@ The rules live in `web/src/store/persistence.ts`.
 
 Every pull request runs lint, build and tests for `api/` and `web/` in GitHub Actions. The run fails if coverage drops below 80% in statements, branches, functions or lines.
 
-Results on 2026-11-15:
+Results on 2026-11-16:
 
 | App | Tests | Statements | Branches | Functions | Lines |
 |---|---|---|---|---|---|
-| `api/` (unit) | 345 | 99.2% | 92.71% | 97.7% | 99.2% |
-| `api/` (end-to-end, real PostgreSQL) | 22 | – | – | – | – |
-| `web/` (unit) | 299 | 100% | 99.09% | 100% | 100% |
+| `api/` (unit) | 386 | 99.3% | 93.59% | 97.87% | 99.3% |
+| `api/` (end-to-end, real PostgreSQL) | 23 | – | – | – | – |
+| `web/` (unit) | 308 | 100% | 99.11% | 100% | 100% |
 
 To reproduce them, run `npm run test:cov` inside `api/` and inside `web/`.
 
@@ -241,7 +272,8 @@ The API must be running, and its `CORS_ORIGINS` must include the web origin (the
 - The API has no field for card data: it receives a card token only. Tokenization happens in the browser, directly with the gateway and its public key.
 - Private keys and secrets live only in environment variables, never in the repository.
 - Webhook events are accepted only if their checksum matches, compared in constant time.
-- HTTP security headers (helmet) with a strict Content Security Policy, `Cache-Control: no-store`, a CORS allow-list and a rate limit per client.
+- HTTP security headers (helmet) with a strict Content Security Policy, `Cache-Control: no-store`, a CORS allow-list and a rate limit per client. Behind a proxy or CDN, `TRUST_PROXY_HOPS` says how many proxies to trust, so the limit counts real clients and the address cannot be faked.
+- A purchase id is a random UUID chosen by the browser and never listed by any endpoint. It works as the key to read that purchase: who does not have it cannot ask for its customer or delivery.
 - Request bodies are validated against a whitelist: unknown fields are rejected.
 - Calls to the gateway have a timeout and a circuit breaker; calls from the browser are cancelled after 15 seconds; the database pool has a size, a connection timeout and a statement timeout.
 - Redux DevTools are disabled in the production build.
@@ -249,10 +281,9 @@ The API must be running, and its `CORS_ORIGINS` must include the web origin (the
 
 ## Known limitations
 
-- A payment approved when the last unit was sold in the meantime stays `APPROVED` with its delivery unassigned; it needs a manual refund.
-- A `PENDING` transaction that never received a gateway id is resolved only by the webhook.
+- A purchase keeps its units reserved while it is `PENDING`. If the gateway cannot be reached for a long time, those units stay out of the stock until it answers.
+- There is no login. Each purchase creates a new customer row, and the customer and delivery of a purchase are protected only by knowing its id. A store with accounts would check who is asking.
 - The circuit breaker and the rate limit keep their state in memory, so each instance of the API has its own.
-- There is no login. Each purchase creates a new customer row.
 - `npm audit` reports 3 moderate findings in a transitive dependency of TypeORM; the fix requires the next major version.
 
 ## Credits

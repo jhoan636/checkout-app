@@ -5,5 +5,8 @@ export interface DeliveryAddress {
   readonly postalCode: string | null;
 }
 
-/** PENDING until the payment is approved, then ASSIGNED to the customer. */
-export type DeliveryStatus = 'PENDING' | 'ASSIGNED';
+/**
+ * PENDING while the payment is not resolved. ASSIGNED to the customer when it
+ * is approved; CANCELLED when it fails, because nothing will be sent.
+ */
+export type DeliveryStatus = 'PENDING' | 'ASSIGNED' | 'CANCELLED';

@@ -136,7 +136,7 @@ describe('Create transaction against the database (e2e)', () => {
     expect(await stock()).toBe(initialStock - 2);
   });
 
-  it('declined: puts the reserved units back and leaves the delivery pending', async () => {
+  it('declined: puts the reserved units back and cancels the delivery', async () => {
     const before = await stock();
     gateway.answer = ok({
       id: `gw-${Date.now()}-d`,
@@ -150,7 +150,7 @@ describe('Create transaction against the database (e2e)', () => {
       'DECLINED',
     );
     expect(await stock()).toBe(before);
-    expect(await deliveryStatus(transaction.id)).toBe('PENDING');
+    expect(await deliveryStatus(transaction.id)).toBe('CANCELLED');
   });
 
   it('gateway unavailable: the purchase stays on record as PENDING', async () => {
