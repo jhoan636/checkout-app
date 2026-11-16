@@ -254,8 +254,8 @@ Results on 2026-11-16:
 
 | App | Tests | Statements | Branches | Functions | Lines |
 |---|---|---|---|---|---|
-| `api/` (unit) | 386 | 99.3% | 93.46% | 97.88% | 99.3% |
-| `api/` (end-to-end, real PostgreSQL) | 23 | – | – | – | – |
+| `api/` (unit) | 390 | 99.31% | 93.61% | 97.91% | 99.31% |
+| `api/` (end-to-end, real PostgreSQL) | 25 | – | – | – | – |
 | `web/` (unit) | 309 | 100% | 99.11% | 100% | 100% |
 
 To reproduce them, run `npm run test:cov` inside `api/` and inside `web/`.
