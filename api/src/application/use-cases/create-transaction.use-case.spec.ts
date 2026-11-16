@@ -207,7 +207,7 @@ describe('CreateTransactionUseCase', () => {
   });
 
   describe('when the gateway declines', () => {
-    it('returns DECLINED, puts the units back on sale and assigns no delivery', async () => {
+    it('returns DECLINED, puts the units back on sale and cancels the delivery', async () => {
       const { useCase, gateway, products, transactions } = setup();
       gateway.answer = gatewayAnswers('DECLINED');
 
@@ -215,7 +215,7 @@ describe('CreateTransactionUseCase', () => {
 
       expect(result).toMatchObject({ value: { status: 'DECLINED' } });
       expect(products.stockOf('prod-1')).toBe(3);
-      expect(transactions.deliveries.get('id-1')).toBe('PENDING');
+      expect(transactions.deliveries.get('id-1')).toBe('CANCELLED');
     });
   });
 

@@ -192,7 +192,8 @@ export class TypeOrmTransactionRepository implements TransactionRepository {
       if (settled.affected !== 1) {
         return 'ALREADY_FINAL';
       }
-      if (transaction.status !== 'APPROVED') {
+      const approved = transaction.status === 'APPROVED';
+      if (!approved) {
         // Nothing was sold: the reserved units are for sale again.
         await manager.increment(
           ProductOrmEntity,
@@ -200,13 +201,12 @@ export class TypeOrmTransactionRepository implements TransactionRepository {
           'stock',
           transaction.quantity,
         );
-        return 'SETTLED';
       }
-
+      // A failed payment sends nothing, so its delivery does not stay PENDING.
       await manager.update(
         DeliveryOrmEntity,
         { transactionId: transaction.id },
-        { status: 'ASSIGNED' },
+        { status: approved ? 'ASSIGNED' : 'CANCELLED' },
       );
       return 'SETTLED';
     });

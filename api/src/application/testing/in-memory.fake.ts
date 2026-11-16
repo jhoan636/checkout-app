@@ -129,6 +129,7 @@ export class InMemoryTransactionRepository implements TransactionRepository {
     this.orders.set(transaction.id, { ...order, transaction });
     if (transaction.status !== 'APPROVED') {
       this.products.increaseStock(transaction.productId, transaction.quantity);
+      this.deliveries.set(transaction.id, 'CANCELLED');
       return Promise.resolve('SETTLED');
     }
     this.deliveries.set(transaction.id, 'ASSIGNED');

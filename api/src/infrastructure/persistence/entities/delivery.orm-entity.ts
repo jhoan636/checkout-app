@@ -33,7 +33,7 @@ export class DeliveryOrmEntity {
   @Column({ name: 'postal_code', type: 'varchar', length: 12, nullable: true })
   postalCode!: string | null;
 
-  /** PENDING until the payment is approved, then ASSIGNED. */
+  /** PENDING until the payment is resolved, then ASSIGNED or CANCELLED. */
   @Column({ type: 'varchar', length: 16 })
   status!: string;
 

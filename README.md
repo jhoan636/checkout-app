@@ -104,7 +104,7 @@ const order = andThen(
 - The amount to charge is computed by the API from the stored price and the fees. The browser never sends an amount.
 - A transaction is stored as `PENDING` before the gateway is called, and only moves from `PENDING` to `APPROVED`, `DECLINED`, `VOIDED` or `ERROR`.
 - The units are reserved (taken out of the stock) in the same database transaction that stores the `PENDING` purchase, with `UPDATE … SET stock = stock - n WHERE stock >= n`. Two buyers can never be charged for the same last unit: the second one gets `409 INSUFFICIENT_STOCK` before any charge.
-- When a payment is approved, the status change and the delivery assignment happen in a single database transaction. When it ends as `DECLINED`, `VOIDED` or `ERROR`, the same transaction puts the reserved units back on sale. Both happen at most once, however many times the result arrives.
+- When a payment is approved, the status change and the delivery assignment (`PENDING` to `ASSIGNED`) happen in a single database transaction. When it ends as `DECLINED`, `VOIDED` or `ERROR`, the same transaction puts the reserved units back on sale and marks the delivery as `CANCELLED`, because nothing will be sent. Both happen at most once, however many times the result arrives.
 - The `Idempotency-Key` header is the transaction id: sending the same request twice returns the same transaction and never charges twice.
 - The gateway usually answers `PENDING` first. The final status arrives through the webhook or by asking `GET /transactions/:id` again.
 - If the answer to the charge is lost (a timeout, a restart), the purchase is looked up in the gateway by its reference. If the gateway knows it, its status is applied; if two minutes later the gateway still does not know it, the charge never arrived: the purchase ends as `ERROR` and its units are released.
@@ -158,7 +158,7 @@ erDiagram
         varchar city
         varchar region
         varchar postal_code "optional"
-        varchar status "PENDING, ASSIGNED"
+        varchar status "PENDING, ASSIGNED, CANCELLED"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -221,7 +221,7 @@ Results on 2026-11-16:
 
 | App | Tests | Statements | Branches | Functions | Lines |
 |---|---|---|---|---|---|
-| `api/` (unit) | 386 | 99.42% | 93.55% | 97.87% | 99.42% |
+| `api/` (unit) | 386 | 99.3% | 93.59% | 97.87% | 99.3% |
 | `api/` (end-to-end, real PostgreSQL) | 23 | – | – | – | – |
 | `web/` (unit) | 308 | 100% | 99.11% | 100% | 100% |
 
