@@ -1,18 +1,19 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
-import { fakeApi, drone, renderWithStore } from './test/render'
+import { fakeApi, drone, renderWithStore, settle } from './test/render'
 
 const productTitle = (name: string) =>
   screen.findByRole('heading', { level: 2, name })
 
 describe('App', () => {
-  it('shows the store heading', () => {
+  it('shows the store heading', async () => {
     renderWithStore(<App />)
 
     expect(
       screen.getByRole('heading', { name: 'Product Checkout' }),
     ).toBeInTheDocument()
+    await settle()
   })
 
   it('opens on the product page', async () => {

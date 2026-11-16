@@ -10,6 +10,7 @@ import {
   drone,
   readyProducts,
   renderWithStore,
+  settle,
   summaryForOne,
 } from '../../test/render'
 import { SummaryBackdrop } from './SummaryBackdrop'
@@ -67,21 +68,23 @@ const failure = (message: string) => ({
 })
 
 describe('SummaryBackdrop', () => {
-  it('opens as a dialog over the page', () => {
+  it('opens as a dialog over the page', async () => {
     renderSummary()
 
     expect(
       screen.getByRole('dialog', { name: 'Payment summary' }),
     ).toBeInTheDocument()
+    await settle()
   })
 
-  it('says it is calculating while the amounts arrive', () => {
+  it('says it is calculating while the amounts arrive', async () => {
     renderSummary({
       api: fakeApi({ getPaymentSummary: () => new Promise(() => undefined) }),
     })
 
     expect(screen.getByRole('status')).toHaveTextContent('Calculating your total')
     expect(screen.queryByRole('button', { name: /^Pay / })).toBeNull()
+    await settle()
   })
 
   describe('the amounts', () => {
@@ -255,18 +258,20 @@ describe('SummaryBackdrop', () => {
       })
     })
 
-    it('does the same with the Escape key', () => {
+    it('does the same with the Escape key', async () => {
       const { store } = renderSummary()
 
       fireEvent(screen.getByRole('dialog'), new Event('cancel'))
 
       expect(store.getState().checkout.step).toBe('details')
+      await settle()
     })
   })
 
-  it('shows nothing without the details of the purchase', () => {
+  it('shows nothing without the details of the purchase', async () => {
     renderSummary({ checkout: { ...onSummary, customer: null } })
 
     expect(screen.queryByRole('dialog')).toBeNull()
+    await settle()
   })
 })
