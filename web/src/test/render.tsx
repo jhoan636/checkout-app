@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { act, render } from '@testing-library/react'
 import type { ReactElement, ReactNode } from 'react'
 import { Provider } from 'react-redux'
 import type { CheckoutApi } from '../api/checkout-api'
@@ -91,6 +91,14 @@ export const fakeServices = (overrides: Partial<Services> = {}): Services => ({
   wait: jest.fn().mockResolvedValue(undefined),
   ...overrides,
 })
+
+/**
+ * Lets the work a render started in the background finish. A test that only
+ * looks at the first paint ends with it, so nothing updates the screen after
+ * the test is over.
+ */
+export const settle = () =>
+  act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)))
 
 /** Renders a component connected to a real store and fake services. */
 export const renderWithStore = (
