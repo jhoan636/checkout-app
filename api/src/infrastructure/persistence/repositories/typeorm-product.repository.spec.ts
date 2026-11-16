@@ -5,11 +5,11 @@ import { TypeOrmProductRepository } from './typeorm-product.repository';
 const row = (overrides: Partial<ProductOrmEntity> = {}): ProductOrmEntity =>
   Object.assign(new ProductOrmEntity(), {
     id: '3f0c2a52-6d0b-4a55-9a5e-0d3b8c1f7a10',
-    name: 'Wireless headphones',
-    description: 'Over-ear, noise cancelling',
+    name: 'Camera drone',
+    description: 'Foldable, with a gimbal',
     priceInCents: 25_000_000,
     stock: 5,
-    imageUrl: 'https://example.com/headphones.png',
+    imageUrl: 'https://example.com/drone.png',
     createdAt: new Date('2026-11-14T10:00:00Z'),
     updatedAt: new Date('2026-11-14T10:00:00Z'),
     ...overrides,
@@ -17,11 +17,11 @@ const row = (overrides: Partial<ProductOrmEntity> = {}): ProductOrmEntity =>
 
 const domainProduct = {
   id: '3f0c2a52-6d0b-4a55-9a5e-0d3b8c1f7a10',
-  name: 'Wireless headphones',
-  description: 'Over-ear, noise cancelling',
+  name: 'Camera drone',
+  description: 'Foldable, with a gimbal',
   priceInCents: 25_000_000,
   stock: 5,
-  imageUrl: 'https://example.com/headphones.png',
+  imageUrl: 'https://example.com/drone.png',
 };
 
 const repositoryWith = (orm: Partial<Repository<ProductOrmEntity>>) =>

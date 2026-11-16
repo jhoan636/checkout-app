@@ -3,30 +3,30 @@ import { Product } from '../../domain/product/product';
 import { err, ok } from '../../domain/shared/result';
 import { ProductQueries } from './product-queries';
 
-const headphones: Product = {
+const drone: Product = {
   id: 'prod-1',
-  name: 'Aurora Wireless Headphones',
-  description: 'Over-ear headphones',
+  name: 'Glide Camera Drone',
+  description: 'Foldable camera drone',
   priceInCents: 45_990_000,
   stock: 3,
-  imageUrl: '/products/aurora-headphones.webp',
+  imageUrl: '/products/glide-drone.webp',
 };
 
-const soldOut: Product = { ...headphones, id: 'prod-2', stock: 0 };
+const soldOut: Product = { ...drone, id: 'prod-2', stock: 0 };
 
 const queries = () =>
-  new ProductQueries(InMemoryProductRepository.with(headphones, soldOut), {
+  new ProductQueries(InMemoryProductRepository.with(drone, soldOut), {
     baseFeeInCents: 300_000,
     deliveryFeeInCents: 1_200_000,
   });
 
 describe('ProductQueries', () => {
   it('lists every product with its stock', async () => {
-    await expect(queries().list()).resolves.toEqual([headphones, soldOut]);
+    await expect(queries().list()).resolves.toEqual([drone, soldOut]);
   });
 
   it('returns one product by id', async () => {
-    await expect(queries().get('prod-1')).resolves.toEqual(ok(headphones));
+    await expect(queries().get('prod-1')).resolves.toEqual(ok(drone));
   });
 
   it('fails with PRODUCT_NOT_FOUND for an unknown id', async () => {

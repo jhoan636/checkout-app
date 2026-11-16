@@ -20,11 +20,11 @@ const fees: Fees = { baseFeeInCents: 300_000, deliveryFeeInCents: 1_200_000 };
 
 const product: Product = {
   id: 'prod-1',
-  name: 'Aurora Wireless Headphones',
-  description: 'Over-ear headphones',
+  name: 'Glide Camera Drone',
+  description: 'Foldable camera drone',
   priceInCents: 45_990_000,
   stock: 3,
-  imageUrl: '/products/aurora-headphones.webp',
+  imageUrl: '/products/glide-drone.webp',
 };
 
 const command: CreateTransactionCommand = {

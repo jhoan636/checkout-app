@@ -7,7 +7,7 @@ import type { CheckoutState } from '../../store/checkout.slice'
 import {
   fakeApi,
   fakeGateway,
-  headphones,
+  drone,
   readyProducts,
   renderWithStore,
   summaryForOne,
@@ -17,7 +17,7 @@ import { SummaryBackdrop } from './SummaryBackdrop'
 const onSummary: CheckoutState = {
   ...initialCheckoutState,
   step: 'summary',
-  productId: headphones.id,
+  productId: drone.id,
   quantity: 1,
   customer: {
     fullName: 'Ana Maria Perez',
@@ -88,7 +88,7 @@ describe('SummaryBackdrop', () => {
     it('breaks the total down into product, base fee and delivery fee', async () => {
       renderSummary()
 
-      expect(await row('Aurora Wireless Headphones × 1')).toHaveTextContent(
+      expect(await row('Glide Camera Drone × 1')).toHaveTextContent(
         '$459.900',
       )
       expect(await row('Base fee')).toHaveTextContent('$3.000')
@@ -112,11 +112,11 @@ describe('SummaryBackdrop', () => {
         }),
       })
 
-      expect(await row('Aurora Wireless Headphones × 2')).toHaveTextContent(
+      expect(await row('Glide Camera Drone × 2')).toHaveTextContent(
         '$919.800',
       )
       expect(await row('Total')).toHaveTextContent('$934.800')
-      expect(api.getPaymentSummary).toHaveBeenCalledWith(headphones.id, 2)
+      expect(api.getPaymentSummary).toHaveBeenCalledWith(drone.id, 2)
     })
   })
 
@@ -178,7 +178,7 @@ describe('SummaryBackdrop', () => {
       expect(api.createTransaction).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          productId: headphones.id,
+          productId: drone.id,
           quantity: 1,
           payment: expect.objectContaining({
             cardToken: 'tok_test_1',

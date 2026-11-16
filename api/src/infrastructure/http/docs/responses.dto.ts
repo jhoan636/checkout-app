@@ -12,10 +12,10 @@ export class ProductResponse {
   @ApiProperty({ format: 'uuid', example: UUID_EXAMPLE })
   id!: string;
 
-  @ApiProperty({ example: 'Aurora Wireless Headphones' })
+  @ApiProperty({ example: 'Glide Camera Drone' })
   name!: string;
 
-  @ApiProperty({ example: 'Over-ear headphones with noise cancelling.' })
+  @ApiProperty({ example: 'A foldable camera drone with a stabilised gimbal.' })
   description!: string;
 
   @ApiProperty({ description: CENTS, example: 45990000 })
@@ -24,7 +24,7 @@ export class ProductResponse {
   @ApiProperty({ description: 'Units available right now.', example: 12 })
   stock!: number;
 
-  @ApiProperty({ example: '/products/aurora-headphones.webp' })
+  @ApiProperty({ example: '/products/glide-drone.webp' })
   imageUrl!: string;
 }
 

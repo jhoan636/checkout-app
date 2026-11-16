@@ -6,12 +6,14 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  */
 const PRODUCT = {
   id: 'a3f1c2d4-5b6e-4f70-8a91-b2c3d4e5f601',
-  name: 'Aurora Wireless Headphones',
+  name: 'Glide Camera Drone',
   description:
-    'Over-ear headphones with active noise cancelling and 40 hours of battery.',
+    'A foldable camera drone with a stabilised gimbal that keeps every shot ' +
+    'smooth, even in a breeze. Light enough to carry all day, simple enough ' +
+    'to fly on your first try.',
   priceInCents: 45_990_000,
   stock: 12,
-  imageUrl: '/products/aurora-headphones.webp',
+  imageUrl: '/products/glide-drone.webp',
 };
 
 export class SeedProduct1763168400000 implements MigrationInterface {

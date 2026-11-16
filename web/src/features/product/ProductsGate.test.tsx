@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { fakeApi, headphones, renderWithStore } from '../../test/render'
+import { fakeApi, drone, renderWithStore } from '../../test/render'
 import { ProductsGate } from './ProductsGate'
 
 const renderGate = (api = fakeApi()) =>
@@ -51,7 +51,7 @@ describe('ProductsGate', () => {
               message: 'Check your connection and try again.',
             },
           })
-          .mockResolvedValue({ ok: true, data: [headphones] }),
+          .mockResolvedValue({ ok: true, data: [drone] }),
       })
 
     it('explains the problem', async () => {
