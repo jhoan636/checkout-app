@@ -166,6 +166,8 @@ erDiagram
 
 The schema only changes through SQL migrations, which run when the API starts. Card data is not part of the model: it is never stored.
 
+Each purchase stores its own customer row, even when the same person buys again. There is no login, so an email that is typed proves nothing about who is buying: reusing a row by email would attach a purchase to somebody else's record, or let a stranger overwrite their name and phone. A purchase also has to keep the contact details it was made with. With accounts and a verified email, a customer would be a single row and each order would keep its own copy.
+
 ## Card validation in the browser
 
 The form helps the customer type the card correctly before anything is sent. The payment gateway remains the one that really validates the card.
