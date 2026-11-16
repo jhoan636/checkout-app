@@ -9,7 +9,7 @@ html:has(dialog[open]) {
   width: 44px;
   height: 28px;
   flex: none;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 .button {
@@ -19,42 +19,98 @@ html:has(dialog[open]) {
   gap: var(--space-2);
   min-height: 48px;
   padding: 0 var(--space-5);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-s);
-  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
   color: var(--ink);
-  font-weight: 600;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   transition:
-    background-color 0.15s ease,
-    opacity 0.15s ease;
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
 }
 
+.button:hover:not(:disabled) {
+  background: var(--glacier-soft);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* The one red thing on each screen. */
 .button--primary {
   flex: 1;
   border-color: var(--accent);
   background: var(--accent);
   color: var(--on-accent);
+  box-shadow: var(--shadow-cta);
+}
+
+/* A drawn chevron: it adds nothing to the name a screen reader announces. */
+.button--primary::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid;
+  border-right: 2px solid;
+  transform: rotate(45deg);
+  transition: translate var(--dur-fast) var(--ease-out);
 }
 
 .button--primary:hover:not(:disabled) {
+  border-color: var(--accent-strong);
   background: var(--accent-strong);
 }
 
+.button--primary:hover:not(:disabled)::after {
+  translate: 2px 0;
+}
+
+/* Disabled is neutral grey, not a washed-out red. */
 .button:disabled {
-  opacity: 0.45;
+  border-color: transparent;
+  background: var(--fill);
+  color: var(--ink-2);
+  box-shadow: none;
   cursor: not-allowed;
+}
+
+.button:disabled::after {
+  display: none;
+}
+
+/* Working on it is not the same as unavailable: it stays red, with a spinner. */
+.button--primary[aria-busy='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: progress;
+}
+
+.button--primary[aria-busy='true']::after {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid color-mix(in srgb, var(--on-accent) 40%, transparent);
+  border-top-color: var(--on-accent);
+  border-radius: 50%;
+  transform: none;
+  animation: spin 0.8s linear infinite;
 }
 
 .stock {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: var(--radius-pill);
   background: var(--ok-soft);
   color: var(--ok);
-  font-size: 12px;
+  font-size: var(--text-caption);
   font-weight: 600;
+  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
@@ -90,7 +146,7 @@ html:has(dialog[open]) {
 
 .notice h2 {
   color: var(--ink);
-  font-size: 20px;
+  font-size: var(--text-heading);
 }
 
 .notice .button--primary {
@@ -100,8 +156,8 @@ html:has(dialog[open]) {
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--line);
-  border-top-color: var(--accent);
+  border: 3px solid var(--glacier-soft);
+  border-top-color: var(--glacier-ink);
   border-radius: 50%;
   animation: spin 0.9s linear infinite;
 }

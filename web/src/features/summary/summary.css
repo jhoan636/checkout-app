@@ -6,7 +6,7 @@
   margin: auto 0 0;
   padding: 0;
   border: 0;
-  border-radius: var(--radius-l) var(--radius-l) 0 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow-sheet);
@@ -16,18 +16,19 @@
 .summary[open] {
   display: flex;
   flex-direction: column;
-  animation: summary-rise 0.22s ease-out;
+  animation: summary-rise var(--dur-slow) var(--ease-out);
 }
 
 .summary::backdrop {
   background: var(--scrim);
-  animation: summary-dim 0.22s ease-out;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: summary-dim var(--dur-base) ease-out;
 }
 
 @keyframes summary-rise {
   from {
-    transform: translateY(24px);
-    opacity: 0;
+    transform: translateY(100%);
   }
 }
 
@@ -40,27 +41,58 @@
 .summary__head {
   display: flex;
   align-items: center;
+  position: relative;
   gap: var(--space-2);
-  padding: var(--space-3) var(--gutter);
-  border-bottom: 1px solid var(--line);
+  padding: var(--space-5) var(--gutter) var(--space-2);
+}
+
+/* The grabber of a bottom sheet. Decoration only. */
+.summary__head::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 36px;
+  height: 4px;
+  margin-left: -18px;
+  border-radius: var(--radius-pill);
+  background: var(--line-strong);
+  opacity: 0.6;
 }
 
 .summary__head h2 {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--text-heading);
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .summary__back {
   display: grid;
   place-items: center;
   flex: none;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   margin-left: calc(var(--space-2) * -1);
   border: 0;
-  border-radius: var(--radius-s);
+  border-radius: var(--radius-pill);
   background: none;
   color: var(--ink);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.summary__back:hover {
+  background: var(--glacier-soft);
+}
+
+/* A problem loading the summary: tinted box, never a solid red. */
+.summary__state[role='alert'] p {
+  width: 100%;
+  padding: var(--space-3);
+  border-left: 3px solid var(--bad);
+  border-radius: var(--radius-s);
+  background: var(--bad-soft);
+  color: var(--bad);
+  text-align: left;
 }
 
 .summary__state {
@@ -116,21 +148,31 @@
 .summary__row--total {
   margin-top: var(--space-1);
   padding-top: var(--space-3);
-  border-top: 1px solid var(--line);
-  color: var(--ink);
-  font-weight: 700;
+  border-top: 1px dashed var(--line-strong);
+  align-items: center;
 }
 
+.summary__row--total dt {
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+/* The total is the number that matters; it is still never red. */
 .summary__row--total dd {
-  font-size: 20px;
+  color: var(--ink);
+  font: 700 var(--text-figure) / 1 var(--font-brand);
+  letter-spacing: -0.04em;
 }
 
 .summary__facts {
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius-m);
-  background: var(--fill);
+  padding: var(--space-4);
+  border-radius: var(--radius-l);
+  background: var(--glacier-soft);
 }
 
 .summary__fact {
@@ -139,16 +181,16 @@
 
 .summary__fact h3 {
   margin-bottom: 2px;
-  color: var(--ink-2);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  color: var(--glacier-ink);
+  font-size: var(--text-meta);
+  font-weight: 700;
+  letter-spacing: var(--tracking-meta);
   text-transform: uppercase;
 }
 
 .summary__muted {
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: var(--text-small);
   overflow-wrap: anywhere;
 }
 
@@ -166,7 +208,7 @@
   margin: 0;
   padding: 0;
   border: 0;
-  font-size: 13px;
+  font-size: var(--text-small);
 }
 
 .summary__consent label {
@@ -174,20 +216,22 @@
   align-items: center;
   gap: var(--space-3);
   /* A full row is easier to hit with a thumb than the box alone. */
-  min-height: 40px;
+  min-height: 44px;
   cursor: pointer;
 }
 
 .summary__consent input {
   flex: none;
-  width: 20px;
-  height: 20px;
-  accent-color: var(--accent);
+  width: 22px;
+  height: 22px;
+  accent-color: var(--glacier-ink);
 }
 
 .summary__consent a {
-  color: var(--accent);
+  color: var(--glacier-ink);
   font-weight: 600;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
 .summary__foot {
@@ -197,17 +241,37 @@
   border-top: 1px solid var(--line);
 }
 
+.summary__foot .button--primary {
+  min-height: 52px;
+  font-size: var(--text-control);
+}
+
 /* Tablets and up: a centred window. */
 @media (min-width: 720px) {
   .summary {
     width: min(480px, calc(100% - 48px));
     max-height: min(720px, calc(100dvh - 48px));
     margin: auto;
-    border-radius: var(--radius-l);
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-float);
+  }
+
+  .summary[open] {
+    animation: summary-pop var(--dur-base) var(--ease-out);
+  }
+
+  .summary__head::before {
+    display: none;
   }
 
   .summary__facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@keyframes summary-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
   }
 }

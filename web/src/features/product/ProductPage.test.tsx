@@ -43,6 +43,19 @@ describe('ProductPage', () => {
       expect(screen.getByText('12 in stock')).toBeInTheDocument()
     })
 
+    it('highlights the last word of the name', () => {
+      renderProduct()
+
+      const accent = title('Glide Camera Drone').querySelector('em')
+      expect(accent).toHaveTextContent(/^Drone$/)
+    })
+
+    it('highlights a name of a single word as a whole', () => {
+      renderProduct({ items: [{ ...drone, name: '  Glide ' }] })
+
+      expect(title('Glide').querySelector('em')).toHaveTextContent(/^Glide$/)
+    })
+
     it('shows its photo with a real size, so the page does not jump', () => {
       renderProduct()
       const image = screen.getByRole('img', { name: 'Glide Camera Drone' })

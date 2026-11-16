@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import type { Product } from '../api/types'
 
-/** Intrinsic size of the product photos; reserves the space before they load. */
+/**
+ * A box reserved before the photo loads, so the page does not jump. The
+ * stylesheet decides the size on screen and keeps the photo's proportions.
+ */
 const PHOTO_SIZE = 480
 
 /**

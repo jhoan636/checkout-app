@@ -47,6 +47,21 @@ function QuantityStepper({
   )
 }
 
+/**
+ * The name is shown as a headline whose last word carries the accent colour.
+ * The heading still reads as the plain name.
+ */
+function ProductName({ name }: { name: string }) {
+  const words = name.trim().split(/\s+/)
+  const last = words.pop()
+  return (
+    <h2 className="product__name">
+      {words.length > 0 && `${words.join(' ')} `}
+      <em>{last}</em>
+    </h2>
+  )
+}
+
 /** One product: what it is, what it costs, how many are left, and the way to pay. */
 export function ProductPage() {
   const dispatch = useAppDispatch()
@@ -73,12 +88,16 @@ export function ProductPage() {
   return (
     <section className="product">
       <div className="product__layout">
+        <div className="product__intro">
+          <p className="product__eyebrow">Featured product</p>
+          <ProductName name={product.name} />
+        </div>
+
         <div className="product__frame">
           <ProductPhoto product={product} className="product__photo" />
         </div>
 
         <div className="product__info">
-          <h2>{product.name}</h2>
           <div className="product__row">
             <strong className="product__price" data-testid="price">
               {formatCop(product.priceInCents)}
