@@ -138,7 +138,7 @@ describe('StatusPage', () => {
       retryable: false,
     }
 
-    it('says so and promises there will be no second charge', () => {
+    it('says so and asks not to start another purchase', () => {
       renderStatus(unconfirmed)
 
       expect(
@@ -146,8 +146,19 @@ describe('StatusPage', () => {
           name: 'We are still confirming your payment',
         }),
       ).toBeInTheDocument()
-      expect(screen.getByText(/You will not be charged twice/)).toBeInTheDocument()
+      expect(
+        screen.getByText(/do not start another purchase/),
+      ).toBeInTheDocument()
       expect(detail('Reference')).toHaveTextContent('ORDER-TEST-0001')
+    })
+
+    it('does not let the customer leave it and buy again: that could be a second charge', () => {
+      renderStatus(unconfirmed)
+
+      expect(
+        screen.queryByRole('button', { name: 'Back to the product' }),
+      ).toBeNull()
+      expect(screen.getByRole('button', { name: 'Check again' })).toBeEnabled()
     })
 
     it('checks again when asked', async () => {
@@ -199,6 +210,15 @@ describe('StatusPage', () => {
 
       expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
       expect(backButton()).toBeInTheDocument()
+    })
+
+    it('offers only the same purchase again while it is not known whether it was charged', () => {
+      renderStatus(failed(true))
+
+      expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled()
+      expect(
+        screen.queryByRole('button', { name: 'Back to the product' }),
+      ).toBeNull()
     })
 
     it('sends the same purchase again when asked', async () => {

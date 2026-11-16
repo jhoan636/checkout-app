@@ -33,13 +33,18 @@ export class TransactionSettlement {
       // failure leaves the outcome unknown, so the transaction stays PENDING
       // to be asked again.
       return NOTHING_CHARGED.includes(answer.error)
-        ? this.settle(transaction, 'ERROR', null)
+        ? this.closeAsNotCharged(transaction)
         : transaction;
     }
     if (answer.value.status === 'PENDING') {
       return this.rememberGatewayId(transaction, answer.value.id);
     }
     return this.settle(transaction, answer.value.status, answer.value.id);
+  }
+
+  /** Ends a purchase that is known not to have been charged. */
+  closeAsNotCharged(transaction: Transaction): Promise<Transaction> {
+    return this.settle(transaction, 'ERROR', null);
   }
 
   private async rememberGatewayId(

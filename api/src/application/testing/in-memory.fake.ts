@@ -50,6 +50,13 @@ export class InMemoryProductRepository implements ProductRepository {
     this.products.set(id, { ...product, stock: product.stock - quantity });
     return true;
   }
+
+  increaseStock(id: string, quantity: number): void {
+    const product = this.products.get(id);
+    if (product) {
+      this.products.set(id, { ...product, stock: product.stock + quantity });
+    }
+  }
 }
 
 export class InMemoryTransactionRepository implements TransactionRepository {
@@ -61,6 +68,10 @@ export class InMemoryTransactionRepository implements TransactionRepository {
   createPending(order: PendingOrder): Promise<CreateOutcome> {
     if (this.orders.has(order.transaction.id)) {
       return Promise.resolve('DUPLICATE');
+    }
+    const { productId, quantity } = order.transaction;
+    if (!this.products.decreaseStock(productId, quantity)) {
+      return Promise.resolve('INSUFFICIENT_STOCK');
     }
     this.orders.set(order.transaction.id, order);
     this.deliveries.set(order.transaction.id, 'PENDING');
@@ -117,12 +128,8 @@ export class InMemoryTransactionRepository implements TransactionRepository {
     }
     this.orders.set(transaction.id, { ...order, transaction });
     if (transaction.status !== 'APPROVED') {
+      this.products.increaseStock(transaction.productId, transaction.quantity);
       return Promise.resolve('SETTLED');
-    }
-    if (
-      !this.products.decreaseStock(transaction.productId, transaction.quantity)
-    ) {
-      return Promise.resolve('APPROVED_WITHOUT_STOCK');
     }
     this.deliveries.set(transaction.id, 'ASSIGNED');
     return Promise.resolve('SETTLED');
@@ -132,6 +139,9 @@ export class InMemoryTransactionRepository implements TransactionRepository {
 export class FakePaymentGateway implements PaymentGateway {
   readonly charges: CardCharge[] = [];
   readonly queries: string[] = [];
+  readonly searches: string[] = [];
+  /** What a search by reference answers; null means "not known". */
+  found: Result<GatewayTransaction | null, GatewayError> = ok(null);
 
   constructor(
     public answer: Result<GatewayTransaction, GatewayError> = ok({
@@ -153,6 +163,13 @@ export class FakePaymentGateway implements PaymentGateway {
   ): Promise<Result<GatewayTransaction, GatewayError>> {
     this.queries.push(gatewayTransactionId);
     return Promise.resolve(this.answer);
+  }
+
+  findTransactionByReference(
+    reference: string,
+  ): Promise<Result<GatewayTransaction | null, GatewayError>> {
+    this.searches.push(reference);
+    return Promise.resolve(this.found);
   }
 }
 

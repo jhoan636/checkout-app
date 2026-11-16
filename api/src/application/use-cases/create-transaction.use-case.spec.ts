@@ -89,6 +89,30 @@ describe('CreateTransactionUseCase', () => {
       expect(transactions.orders.size).toBe(0);
     });
 
+    it('fails with INSUFFICIENT_STOCK when another purchase took the units first', async () => {
+      const { useCase, gateway, transactions } = setup();
+      // Both purchases saw stock; the database gave the units to the other one.
+      transactions.createPending = () => Promise.resolve('INSUFFICIENT_STOCK');
+
+      const result = await useCase.execute(command);
+
+      expect(result).toEqual(err('INSUFFICIENT_STOCK'));
+      expect(gateway.charges).toHaveLength(0);
+    });
+
+    it('never charges two buyers for the same last units', async () => {
+      const { useCase, gateway, products } = setup();
+      gateway.answer = gatewayAnswers('PENDING');
+
+      const first = await useCase.execute(command);
+      const second = await useCase.execute(command);
+
+      expect(first).toMatchObject({ ok: true });
+      expect(second).toEqual(err('INSUFFICIENT_STOCK'));
+      expect(gateway.charges).toHaveLength(1);
+      expect(products.stockOf('prod-1')).toBe(1);
+    });
+
     it('fails with INVALID_QUANTITY for a quantity of zero', async () => {
       const { useCase } = setup();
 
@@ -99,18 +123,21 @@ describe('CreateTransactionUseCase', () => {
   });
 
   describe('charging', () => {
-    it('stores the transaction as PENDING before calling the gateway', async () => {
-      const { useCase, gateway, transactions } = setup();
+    it('stores the transaction as PENDING and reserves its units before calling the gateway', async () => {
+      const { useCase, gateway, products, transactions } = setup();
       let statusWhenCharged: string | undefined;
+      let stockWhenCharged: number | undefined;
       const charge = gateway.createCardTransaction.bind(gateway);
       gateway.createCardTransaction = (request) => {
         statusWhenCharged = transactions.orders.get('id-1')?.transaction.status;
+        stockWhenCharged = products.stockOf('prod-1');
         return charge(request);
       };
 
       await useCase.execute(command);
 
       expect(statusWhenCharged).toBe('PENDING');
+      expect(stockWhenCharged).toBe(1);
     });
 
     it('charges the total calculated by the backend from its own price', async () => {
@@ -168,7 +195,7 @@ describe('CreateTransactionUseCase', () => {
       });
     });
 
-    it('decreases the stock and assigns the delivery', async () => {
+    it('keeps the units out of the stock and assigns the delivery', async () => {
       const { useCase, gateway, products, transactions } = setup();
       gateway.answer = gatewayAnswers('APPROVED');
 
@@ -180,7 +207,7 @@ describe('CreateTransactionUseCase', () => {
   });
 
   describe('when the gateway declines', () => {
-    it('returns DECLINED and leaves stock and delivery untouched', async () => {
+    it('returns DECLINED, puts the units back on sale and assigns no delivery', async () => {
       const { useCase, gateway, products, transactions } = setup();
       gateway.answer = gatewayAnswers('DECLINED');
 
@@ -205,7 +232,8 @@ describe('CreateTransactionUseCase', () => {
       expect(
         transactions.orders.get('id-1')?.transaction.gatewayTransactionId,
       ).toBe('gw-1');
-      expect(products.stockOf('prod-1')).toBe(3);
+      // The units stay reserved until the gateway decides.
+      expect(products.stockOf('prod-1')).toBe(1);
     });
   });
 
@@ -237,7 +265,7 @@ describe('CreateTransactionUseCase', () => {
         expect(transactions.orders.get('id-1')?.transaction.status).toBe(
           'PENDING',
         );
-        expect(products.stockOf('prod-1')).toBe(3);
+        expect(products.stockOf('prod-1')).toBe(1);
       },
     );
   });

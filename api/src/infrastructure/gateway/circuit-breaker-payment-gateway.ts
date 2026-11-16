@@ -16,7 +16,7 @@ export interface CircuitBreakerConfig {
 
 export type CircuitState = 'OPEN' | 'CLOSED';
 
-type Answer = Result<GatewayTransaction, GatewayError>;
+type Answer<T = GatewayTransaction> = Result<T, GatewayError>;
 
 /**
  * Circuit breaker around the payment gateway (decorator of the port).
@@ -53,7 +53,13 @@ export class CircuitBreakerPaymentGateway implements PaymentGateway {
     return this.guard(() => this.inner.findTransaction(gatewayTransactionId));
   }
 
-  private async guard(call: () => Promise<Answer>): Promise<Answer> {
+  findTransactionByReference(
+    reference: string,
+  ): Promise<Answer<GatewayTransaction | null>> {
+    return this.guard(() => this.inner.findTransactionByReference(reference));
+  }
+
+  private async guard<T>(call: () => Promise<Answer<T>>): Promise<Answer<T>> {
     const isTrial = this.openedAt !== null;
     if (isTrial) {
       const cooledDown =
@@ -69,7 +75,7 @@ export class CircuitBreakerPaymentGateway implements PaymentGateway {
       Promise.resolve().then(call),
       (): GatewayError => 'GATEWAY_UNAVAILABLE',
     );
-    const answer: Answer = settled.ok ? settled.value : settled;
+    const answer: Answer<T> = settled.ok ? settled.value : settled;
 
     if (isTrial) {
       this.trialInFlight = false;
@@ -78,7 +84,7 @@ export class CircuitBreakerPaymentGateway implements PaymentGateway {
     return answer;
   }
 
-  private record(answer: Answer, wasTrial: boolean): void {
+  private record(answer: Answer<unknown>, wasTrial: boolean): void {
     const failed = !answer.ok && answer.error === 'GATEWAY_UNAVAILABLE';
     if (!failed) {
       this.failuresInARow = 0;

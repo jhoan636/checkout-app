@@ -15,7 +15,7 @@ import './summary.css'
  */
 export function SummaryBackdrop() {
   const dispatch = useAppDispatch()
-  const { productId, customer, delivery, card } = useAppSelector(
+  const { productId, customer, delivery, card, installments } = useAppSelector(
     (state) => state.checkout,
   )
   const product = useAppSelector((state) => selectProductById(state, productId))
@@ -117,6 +117,11 @@ export function SummaryBackdrop() {
                 <p className="summary__card">
                   <BrandLogo brand={card.brand} />
                   <span>•••• {card.lastFour}</span>
+                </p>
+                <p>
+                  {installments === 1
+                    ? 'In 1 payment'
+                    : `In ${installments} monthly payments`}
                 </p>
               </section>
             </div>

@@ -164,7 +164,8 @@
   align-items: center;
 }
 
-.field input {
+.field input,
+.field select {
   width: 100%;
   min-width: 0;
   height: 48px;
@@ -179,8 +180,14 @@
     box-shadow var(--dur-fast) var(--ease-out);
 }
 
-.field input:hover {
+.field input:hover,
+.field select:hover {
   border-color: var(--ink-2);
+}
+
+.field select {
+  color: var(--ink);
+  cursor: pointer;
 }
 
 .field input::placeholder {
@@ -188,7 +195,8 @@
   opacity: 0.6;
 }
 
-.field input:focus-visible {
+.field input:focus-visible,
+.field select:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 1px;
   border-color: var(--focus);

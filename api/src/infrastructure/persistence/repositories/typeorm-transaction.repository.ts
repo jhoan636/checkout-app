@@ -35,6 +35,9 @@ const toDomain = (row: TransactionOrmEntity): Transaction => ({
 
 const UNIQUE_VIOLATION = '23505';
 
+/** Thrown inside the database transaction to undo it; never leaves this file. */
+class OutOfStock extends Error {}
+
 const isUniqueViolation = (error: unknown): boolean =>
   error instanceof QueryFailedError &&
   (error.driverError as { code?: string } | undefined)?.code ===
@@ -54,6 +57,9 @@ export class TypeOrmTransactionRepository implements TransactionRepository {
       if (isUniqueViolation(error)) {
         return 'DUPLICATE';
       }
+      if (error instanceof OutOfStock) {
+        return 'INSUFFICIENT_STOCK';
+      }
       throw error;
     }
   }
@@ -61,7 +67,8 @@ export class TypeOrmTransactionRepository implements TransactionRepository {
   private async insertOrder(order: PendingOrder): Promise<void> {
     const { transaction, customer, delivery } = order;
 
-    // One database transaction: the three rows are stored together or not at all.
+    // One database transaction: the three rows and the reserved units are
+    // stored together or not at all.
     await this.dataSource.transaction(async (manager) => {
       const customerRow = await manager.save(CustomerOrmEntity, {
         fullName: customer.fullName,
@@ -92,6 +99,21 @@ export class TypeOrmTransactionRepository implements TransactionRepository {
         postalCode: delivery.postalCode,
         status: 'PENDING',
       });
+
+      // UPDATE ... SET stock = stock - n WHERE stock >= n: never below zero,
+      // even with simultaneous purchases. Only one of them gets the last unit.
+      const reserved = await manager.decrement(
+        ProductOrmEntity,
+        {
+          id: transaction.productId,
+          stock: MoreThanOrEqual(transaction.quantity),
+        },
+        'stock',
+        transaction.quantity,
+      );
+      if (reserved.affected !== 1) {
+        throw new OutOfStock();
+      }
     });
   }
 
@@ -171,22 +193,14 @@ export class TypeOrmTransactionRepository implements TransactionRepository {
         return 'ALREADY_FINAL';
       }
       if (transaction.status !== 'APPROVED') {
+        // Nothing was sold: the reserved units are for sale again.
+        await manager.increment(
+          ProductOrmEntity,
+          { id: transaction.productId },
+          'stock',
+          transaction.quantity,
+        );
         return 'SETTLED';
-      }
-
-      // UPDATE ... SET stock = stock - n WHERE stock >= n: never below zero,
-      // even with simultaneous purchases.
-      const stock = await manager.decrement(
-        ProductOrmEntity,
-        {
-          id: transaction.productId,
-          stock: MoreThanOrEqual(transaction.quantity),
-        },
-        'stock',
-        transaction.quantity,
-      );
-      if (stock.affected !== 1) {
-        return 'APPROVED_WITHOUT_STOCK';
       }
 
       await manager.update(

@@ -43,6 +43,12 @@ export const initialTransactionState: TransactionState = {
 /** The gateway usually answers PENDING first and decides seconds later. */
 export const POLL_INTERVAL_MS = 2_000
 export const MAX_CHECKS = 10
+/**
+ * How many times an unknown payment is looked for before believing it was
+ * never sent. The API stores a purchase the moment it receives it, so a
+ * request that has not shown up after these checks is not coming.
+ */
+export const MAX_SEARCHES = 5
 
 const FALLBACK_ERROR = 'The payment could not be processed.'
 const NEVER_SENT =
@@ -88,7 +94,8 @@ export const pay = createAsyncThunk<Transaction, void, ThunkConfig>(
   'transaction/pay',
   async (_, { getState, dispatch, extra, rejectWithValue }) => {
     const { checkout, payment, transaction } = getState()
-    const { productId, quantity, customer, delivery, cardToken } = checkout
+    const { productId, quantity, customer, delivery, cardToken, installments } =
+      checkout
     const { acceptance } = payment
     if (!productId || !customer || !delivery || !cardToken || !acceptance) {
       return rejectWithValue({ message: FALLBACK_ERROR, retryable: false })
@@ -108,7 +115,7 @@ export const pay = createAsyncThunk<Transaction, void, ThunkConfig>(
       delivery,
       payment: {
         cardToken,
-        installments: 1,
+        installments,
         acceptanceToken: acceptance.acceptanceToken,
         personalDataAuthToken: acceptance.personalDataAuthToken,
       },
@@ -127,9 +134,27 @@ export const pay = createAsyncThunk<Transaction, void, ThunkConfig>(
 )
 
 /**
+ * Reads a payment that may have been sent moments ago, for example right
+ * before a refresh. "Not found" is not believed at once: the request to pay
+ * may still be on its way, so it is looked for a few times.
+ */
+const findPayment = async (id: string, { api, wait }: Services) => {
+  let result = await api.getTransaction(id)
+  for (
+    let search = 1;
+    search < MAX_SEARCHES && !result.ok && result.error.status === 404;
+    search += 1
+  ) {
+    await wait(POLL_INTERVAL_MS)
+    result = await api.getTransaction(id)
+  }
+  return result
+}
+
+/**
  * Looks at a payment that may already exist, for example after a refresh.
  * A check that does not get through changes nothing; only the API saying
- * "there is no such payment" ends it.
+ * again and again "there is no such payment" ends it.
  */
 export const checkPayment = createAsyncThunk<
   Transaction | null,
@@ -139,7 +164,7 @@ export const checkPayment = createAsyncThunk<
   'transaction/check',
   async (_, { getState, extra, rejectWithValue }) => {
     const { id, transaction } = getState().transaction
-    const result = await extra.api.getTransaction(id as string)
+    const result = await findPayment(id as string, extra)
     if (result.ok) {
       return waitForResult(result.data, extra)
     }

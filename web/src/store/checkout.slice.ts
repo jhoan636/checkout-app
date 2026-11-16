@@ -6,6 +6,9 @@ import type { CardBrand } from '../lib/card'
 /** Same limit the API enforces. */
 export const MAX_UNITS_PER_PURCHASE = 10
 
+/** Ways to split the payment offered to the customer; the API allows up to 36. */
+export const INSTALLMENT_OPTIONS = [1, 2, 3, 6, 12, 24, 36] as const
+
 /** The checkout is a sequence of steps; the customer is always on one. */
 export type CheckoutStep = 'product' | 'details' | 'summary' | 'status'
 
@@ -29,6 +32,8 @@ export interface CheckoutState {
   customer: Customer | null
   delivery: DeliveryAddress | null
   card: CardSummary | null
+  /** In how many monthly payments the bank will charge the card. */
+  installments: number
   /**
    * One-use token the gateway gave in exchange for the card. It lives in
    * memory only and is useless without the private key our API holds.
@@ -46,6 +51,7 @@ export const initialCheckoutState: CheckoutState = {
   customer: null,
   delivery: null,
   card: null,
+  installments: 1,
   cardToken: null,
   submitting: false,
   submitError: null,
@@ -95,7 +101,9 @@ const checkoutSlice = createSlice({
     /** Only an answer the form is still waiting for moves the checkout on. */
     detailsSubmitted(
       state,
-      action: PayloadAction<PurchaseDetails & { cardToken: string }>,
+      action: PayloadAction<
+        PurchaseDetails & { cardToken: string; installments: number }
+      >,
     ) {
       if (state.step !== 'details' || !state.submitting) {
         return
@@ -103,6 +111,7 @@ const checkoutSlice = createSlice({
       state.customer = action.payload.customer
       state.delivery = action.payload.delivery
       state.card = action.payload.card
+      state.installments = action.payload.installments
       state.cardToken = action.payload.cardToken
       state.submitting = false
       state.step = 'summary'

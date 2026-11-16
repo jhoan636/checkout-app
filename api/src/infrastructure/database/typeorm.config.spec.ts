@@ -19,6 +19,7 @@ const env: Env = {
   DELIVERY_FEE_IN_CENTS: 1_200_000,
   CORS_ORIGINS: ['http://localhost:5173'],
   RATE_LIMIT_PER_MINUTE: 120,
+  TRUST_PROXY_HOPS: 0,
 };
 
 const configWith = (overrides: Partial<Env> = {}) =>

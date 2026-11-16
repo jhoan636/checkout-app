@@ -63,6 +63,7 @@ const setup = () => {
     insert: jest.fn().mockResolvedValue(undefined),
     update: jest.fn().mockResolvedValue(affected(1)),
     decrement: jest.fn().mockResolvedValue(affected(1)),
+    increment: jest.fn().mockResolvedValue(affected(1)),
   };
   const ormRepository = {
     findOne: jest.fn(),
@@ -102,6 +103,42 @@ describe('TypeOrmTransactionRepository', () => {
         ...order.delivery,
         status: 'PENDING',
       });
+    });
+
+    it('reserves the units in the same database transaction, never below zero', async () => {
+      const { repository, manager, dataSource } = setup();
+
+      await repository.createPending(order);
+
+      expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+      expect(manager.decrement).toHaveBeenCalledWith(
+        ProductOrmEntity,
+        { id: productId, stock: MoreThanOrEqual(2) },
+        'stock',
+        2,
+      );
+    });
+
+    it('reports INSUFFICIENT_STOCK and undoes the inserts when the units are gone', async () => {
+      const { repository, manager, dataSource } = setup();
+      manager.decrement.mockResolvedValue(affected(0));
+      let undone = false;
+      dataSource.transaction.mockImplementation(
+        async (work: (m: EntityManager) => Promise<unknown>) => {
+          try {
+            return await work(manager as unknown as EntityManager);
+          } catch (error) {
+            // A real database rolls back when the work throws.
+            undone = true;
+            throw error;
+          }
+        },
+      );
+
+      await expect(repository.createPending(order)).resolves.toBe(
+        'INSUFFICIENT_STOCK',
+      );
+      expect(undone).toBe(true);
     });
 
     it('lets the failure out so the database rolls everything back', async () => {
@@ -277,22 +314,18 @@ describe('TypeOrmTransactionRepository', () => {
       );
     });
 
-    it('on approval decreases the stock conditionally and assigns the delivery', async () => {
+    it('on approval assigns the delivery; the units were taken when it was created', async () => {
       const { repository, manager } = setup();
 
       await expect(repository.settle(approved)).resolves.toBe('SETTLED');
 
-      expect(manager.decrement).toHaveBeenCalledWith(
-        ProductOrmEntity,
-        { id: productId, stock: MoreThanOrEqual(2) },
-        'stock',
-        2,
-      );
       expect(manager.update).toHaveBeenCalledWith(
         DeliveryOrmEntity,
         { transactionId: id },
         { status: 'ASSIGNED' },
       );
+      expect(manager.decrement).not.toHaveBeenCalled();
+      expect(manager.increment).not.toHaveBeenCalled();
     });
 
     it('reports ALREADY_FINAL and touches no stock when it lost the race', async () => {
@@ -300,27 +333,26 @@ describe('TypeOrmTransactionRepository', () => {
       manager.update.mockResolvedValue(affected(0));
 
       await expect(repository.settle(approved)).resolves.toBe('ALREADY_FINAL');
-      expect(manager.decrement).not.toHaveBeenCalled();
+      expect(manager.increment).not.toHaveBeenCalled();
     });
 
-    it('does not touch stock or delivery for a declined payment', async () => {
-      const { repository, manager } = setup();
+    it.each(['DECLINED', 'VOIDED', 'ERROR'] as const)(
+      'gives the reserved units back when the payment ends %s',
+      async (status) => {
+        const { repository, manager } = setup();
 
-      await expect(
-        repository.settle({ ...approved, status: 'DECLINED' }),
-      ).resolves.toBe('SETTLED');
-      expect(manager.decrement).not.toHaveBeenCalled();
-      expect(manager.update).toHaveBeenCalledTimes(1);
-    });
-
-    it('reports APPROVED_WITHOUT_STOCK and leaves the delivery unassigned', async () => {
-      const { repository, manager } = setup();
-      manager.decrement.mockResolvedValue(affected(0));
-
-      await expect(repository.settle(approved)).resolves.toBe(
-        'APPROVED_WITHOUT_STOCK',
-      );
-      expect(manager.update).toHaveBeenCalledTimes(1);
-    });
+        await expect(repository.settle({ ...approved, status })).resolves.toBe(
+          'SETTLED',
+        );
+        expect(manager.increment).toHaveBeenCalledWith(
+          ProductOrmEntity,
+          { id: productId },
+          'stock',
+          2,
+        );
+        // The delivery stays unassigned.
+        expect(manager.update).toHaveBeenCalledTimes(1);
+      },
+    );
   });
 });

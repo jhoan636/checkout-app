@@ -186,6 +186,28 @@ describe('DetailsModal', () => {
     })
   })
 
+  describe('installments', () => {
+    it('starts on a single payment', () => {
+      renderModal()
+
+      expect(field('Installments')).toHaveValue('1')
+    })
+
+    it('sends the purchase on with the payments chosen', async () => {
+      const user = userEvent.setup()
+      const { store } = renderModal()
+      await fillEverything(user)
+
+      await user.selectOptions(field('Installments'), '12 monthly payments')
+      await user.click(screen.getByRole('button', { name: 'Continue' }))
+
+      await waitFor(() =>
+        expect(store.getState().checkout.step).toBe('summary'),
+      )
+      expect(store.getState().checkout.installments).toBe(12)
+    })
+  })
+
   describe('continuing', () => {
     const cardRejected = () =>
       fakeGateway({

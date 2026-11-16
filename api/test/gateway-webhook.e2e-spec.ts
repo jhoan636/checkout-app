@@ -163,7 +163,8 @@ describe('Gateway webhook (e2e)', () => {
     expect((await transactions.findById(transaction.id))?.status).toBe(
       'PENDING',
     );
-    expect(await stock()).toBe(before);
+    // Nothing was settled: its unit is still reserved, neither sold nor freed.
+    expect(await stock()).toBe(before - 1);
   });
 
   it('refuses a body that is not an event', async () => {

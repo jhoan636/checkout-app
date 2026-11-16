@@ -15,6 +15,7 @@ export interface Env {
   DELIVERY_FEE_IN_CENTS: number;
   CORS_ORIGINS: string[];
   RATE_LIMIT_PER_MINUTE: number;
+  TRUST_PROXY_HOPS: number;
 }
 
 type RawEnv = Record<string, unknown>;
@@ -30,6 +31,8 @@ const MAX_FEE_IN_CENTS = 100_000_000;
 const DEFAULT_CORS_ORIGINS = 'http://localhost:5173';
 const DEFAULT_RATE_LIMIT_PER_MINUTE = '120';
 const MAX_RATE_LIMIT_PER_MINUTE = 10_000;
+const DEFAULT_TRUST_PROXY_HOPS = '0';
+const MAX_TRUST_PROXY_HOPS = 5;
 
 /**
  * Validates the process environment at startup so a missing or malformed
@@ -163,6 +166,12 @@ export function validateEnv(raw: RawEnv): Env {
       DEFAULT_RATE_LIMIT_PER_MINUTE,
       1,
       MAX_RATE_LIMIT_PER_MINUTE,
+    ),
+    TRUST_PROXY_HOPS: integer(
+      'TRUST_PROXY_HOPS',
+      DEFAULT_TRUST_PROXY_HOPS,
+      0,
+      MAX_TRUST_PROXY_HOPS,
     ),
   };
 

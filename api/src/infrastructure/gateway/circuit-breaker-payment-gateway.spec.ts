@@ -69,6 +69,15 @@ describe('CircuitBreakerPaymentGateway', () => {
       expect(inner.queries).toEqual(['gw-1']);
     });
 
+    it('passes a search by reference through, found or not', async () => {
+      const { inner, breaker } = setup();
+
+      await expect(
+        breaker.findTransactionByReference('ORDER-0001'),
+      ).resolves.toEqual(ok(null));
+      expect(inner.searches).toEqual(['ORDER-0001']);
+    });
+
     it('stays closed below the failure threshold', async () => {
       const { inner, breaker, failTimes } = setup();
 
@@ -115,6 +124,10 @@ describe('CircuitBreakerPaymentGateway', () => {
         notCalled,
       );
       await expect(breaker.findTransaction('gw-1')).resolves.toEqual(notCalled);
+      await expect(
+        breaker.findTransactionByReference('ORDER-0001'),
+      ).resolves.toEqual(notCalled);
+      expect(inner.searches).toHaveLength(0);
       expect(inner.charges).toHaveLength(3);
       expect(inner.queries).toHaveLength(0);
       expect(changes).toEqual(['OPEN']);

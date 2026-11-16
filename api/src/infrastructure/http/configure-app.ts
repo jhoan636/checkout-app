@@ -1,8 +1,15 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  INestApplication,
+  ValidationError,
+  ValidationPipe,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import { Env } from '../config/env.validation';
+import { HttpErrorFilter } from './errors/http-error.filter';
 import { RequestLogInterceptor } from './request-log.interceptor';
 
 export const DOCS_PATH = 'docs';
@@ -59,6 +66,15 @@ export const securityHeaders = (
   apiHeaders(request, response, next);
 };
 
+/** Every message of every field, nested objects included. */
+const validationMessages = (errors: ValidationError[]): string[] =>
+  errors.flatMap((error) => [
+    ...Object.values(error.constraints ?? {}),
+    ...validationMessages(error.children ?? []).map(
+      (message) => `${error.property}.${message}`,
+    ),
+  ]);
+
 /**
  * HTTP settings shared by the real server and the end-to-end tests, so the
  * tests exercise the same behaviour the deployed API has.
@@ -66,6 +82,13 @@ export const securityHeaders = (
 export const configureApp = (app: INestApplication): void => {
   const config = app.get<ConfigService<Env, true>>(ConfigService);
 
+  // Behind a proxy or CDN the caller's address arrives in X-Forwarded-For.
+  // Trusting exactly the proxies in front keeps the rate limit per client,
+  // and a client cannot fake its address by sending that header itself.
+  (app as NestExpressApplication).set(
+    'trust proxy',
+    config.get('TRUST_PROXY_HOPS', { infer: true }),
+  );
   app.use(securityHeaders);
   app.enableCors({
     origin: config.get('CORS_ORIGINS', { infer: true }),
@@ -79,8 +102,15 @@ export const configureApp = (app: INestApplication): void => {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: (errors) =>
+        new BadRequestException({
+          statusCode: 400,
+          error: 'VALIDATION_ERROR',
+          message: validationMessages(errors),
+        }),
     }),
   );
+  app.useGlobalFilters(new HttpErrorFilter());
   app.useGlobalInterceptors(new RequestLogInterceptor());
   app.enableShutdownHooks();
 };

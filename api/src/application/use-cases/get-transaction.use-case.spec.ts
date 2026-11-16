@@ -8,7 +8,10 @@ import {
 } from '../testing/in-memory.fake';
 import { err, ok } from '../../domain/shared/result';
 import { Transaction } from '../../domain/transaction/transaction';
-import { GetTransactionUseCase } from './get-transaction.use-case';
+import {
+  GetTransactionUseCase,
+  NEVER_ARRIVED_AFTER_MS,
+} from './get-transaction.use-case';
 
 const createdAt = new Date('2026-11-15T09:00:00Z');
 const now = new Date('2026-11-15T09:00:30Z');
@@ -29,7 +32,7 @@ const pending: Transaction = {
   updatedAt: createdAt,
 };
 
-const setup = async (stored: Transaction = pending) => {
+const setup = async (stored: Transaction = pending, at: Date = now) => {
   const products = InMemoryProductRepository.with({
     id: 'prod-1',
     name: 'Product',
@@ -48,7 +51,8 @@ const setup = async (stored: Transaction = pending) => {
   const useCase = new GetTransactionUseCase(
     transactions,
     gateway,
-    new TransactionSettlement(transactions, new FixedClock(now)),
+    new TransactionSettlement(transactions, new FixedClock(at)),
+    new FixedClock(at),
   );
   return { products, transactions, gateway, useCase };
 };
@@ -104,7 +108,7 @@ describe('GetTransactionUseCase', () => {
     expect(gateway.queries).toHaveLength(1);
   });
 
-  it('stores DECLINED and keeps the stock', async () => {
+  it('stores DECLINED and puts the reserved units back on sale', async () => {
     const { useCase, gateway, products } = await setup();
     gateway.answer = ok({ id: 'gw-1', status: 'DECLINED', reference: 'r' });
 
@@ -130,11 +134,73 @@ describe('GetTransactionUseCase', () => {
     },
   );
 
-  it('cannot ask the gateway when the charge never returned an id', async () => {
+  describe('when the answer to the charge was lost and its gateway id is unknown', () => {
     const lost: Transaction = { ...pending, gatewayTransactionId: null };
-    const { useCase, gateway } = await setup(lost);
+    const after = (milliseconds: number) =>
+      new Date(createdAt.getTime() + milliseconds);
 
-    await expect(useCase.execute('tx-1')).resolves.toEqual(ok(lost));
-    expect(gateway.queries).toHaveLength(0);
+    it('asks the gateway by reference and settles what it finds', async () => {
+      const { useCase, gateway, products, transactions } = await setup(lost);
+      gateway.found = ok({
+        id: 'gw-9',
+        status: 'APPROVED',
+        reference: 'ORDER-tx-1',
+      });
+
+      await expect(useCase.execute('tx-1')).resolves.toMatchObject({
+        value: { status: 'APPROVED', gatewayTransactionId: 'gw-9' },
+      });
+      expect(gateway.searches).toEqual(['ORDER-tx-1']);
+      expect(gateway.queries).toHaveLength(0);
+      expect(products.stockOf('prod-1')).toBe(3);
+      expect(transactions.deliveries.get('tx-1')).toBe('ASSIGNED');
+    });
+
+    it('remembers the gateway id when the charge is found still PENDING', async () => {
+      const { useCase, gateway } = await setup(lost);
+      gateway.found = ok({
+        id: 'gw-9',
+        status: 'PENDING',
+        reference: 'ORDER-tx-1',
+      });
+
+      await expect(useCase.execute('tx-1')).resolves.toMatchObject({
+        value: { status: 'PENDING', gatewayTransactionId: 'gw-9' },
+      });
+    });
+
+    it('keeps waiting while the charge may still be on its way', async () => {
+      const { useCase, products } = await setup(
+        lost,
+        after(NEVER_ARRIVED_AFTER_MS - 1),
+      );
+
+      await expect(useCase.execute('tx-1')).resolves.toEqual(ok(lost));
+      expect(products.stockOf('prod-1')).toBe(3);
+    });
+
+    it('ends as ERROR and frees the units once it is certain the charge never arrived', async () => {
+      const { useCase, products, transactions } = await setup(
+        lost,
+        after(NEVER_ARRIVED_AFTER_MS),
+      );
+
+      await expect(useCase.execute('tx-1')).resolves.toMatchObject({
+        value: { status: 'ERROR', gatewayTransactionId: null },
+      });
+      expect((await transactions.findById('tx-1'))?.status).toBe('ERROR');
+      expect(products.stockOf('prod-1')).toBe(5);
+    });
+
+    it('decides nothing when the gateway cannot be asked', async () => {
+      const { useCase, gateway, transactions } = await setup(
+        lost,
+        after(NEVER_ARRIVED_AFTER_MS * 10),
+      );
+      gateway.found = err('GATEWAY_UNAVAILABLE');
+
+      await expect(useCase.execute('tx-1')).resolves.toEqual(ok(lost));
+      expect((await transactions.findById('tx-1'))?.status).toBe('PENDING');
+    });
   });
 });
