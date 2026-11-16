@@ -5,19 +5,15 @@
 .product {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
   min-height: calc(100dvh - 53px);
-  padding: var(--space-3) var(--gutter) 0;
+  padding: var(--space-3) var(--gutter) var(--space-4);
 }
 
 .product__layout {
   display: grid;
-  grid-template-areas:
-    'intro'
-    'frame'
-    'info';
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
-  gap: var(--space-5);
+  gap: var(--space-4);
   padding: var(--space-6) var(--space-4);
   border-radius: var(--radius-xl);
   background: linear-gradient(180deg, var(--surface), var(--bg-top));
@@ -25,7 +21,6 @@
 }
 
 .product__intro {
-  grid-area: intro;
   display: grid;
   gap: var(--space-3);
   justify-items: center;
@@ -67,11 +62,10 @@
 
 /* The stage: a glacier halo, an orbit with a red quarter, a soft shadow. */
 .product__frame {
-  grid-area: frame;
   position: relative;
   width: 100%;
   max-width: 520px;
-  margin: 0 auto;
+  margin: var(--space-1) auto;
   aspect-ratio: 16 / 10;
   background: radial-gradient(
     55% 60% at 50% 48%,
@@ -120,12 +114,21 @@
   }
 }
 
+/*
+ * On a phone the facts are laid out by the card itself, so the bar with the
+ * total can stay in reach along the whole card. From a tablet up they form
+ * a panel of their own.
+ */
 .product__info {
-  grid-area: info;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  min-width: 0;
+  display: contents;
+}
+
+/* Three reasons to buy. Only wide screens have room for them. */
+.product__facts {
+  display: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .product__row {
@@ -219,8 +222,8 @@
   position: sticky;
   bottom: 0;
   z-index: 1;
-  /* On a tall screen the space goes above the bar, not inside the card. */
-  margin-top: auto;
+  /* Wider than the text of the card, so the button keeps its label on one line. */
+  margin-inline: calc(-1 * var(--space-3));
   padding: 0 0 max(var(--space-2), env(safe-area-inset-bottom, 0px));
 }
 
@@ -259,10 +262,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Tablets and up: the product on the left, the facts in a card on the right. */
+/* Tablets and up: the product on the left, the purchase in a panel on the right. */
 @media (min-width: 720px) {
   .product {
-    padding-top: var(--space-6);
+    padding-block: var(--space-6);
   }
 
   .product__layout {
@@ -270,33 +273,118 @@
     grid-template-areas:
       'intro intro'
       'frame info';
-    column-gap: var(--space-7);
+    gap: var(--space-5) var(--space-7);
     align-items: center;
-    padding: var(--space-7) var(--space-7) var(--space-8);
+    padding: var(--space-7);
   }
 
   .product__intro {
+    grid-area: intro;
     justify-items: start;
     text-align: left;
   }
 
   .product__frame {
+    grid-area: frame;
     max-width: none;
     margin: 0;
   }
 
   .product__info {
+    grid-area: info;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
     padding: var(--space-6);
     border: 1px solid var(--line);
     border-radius: var(--radius-l);
     background: var(--surface);
   }
 
+  /* The total and the button close the panel instead of floating below. */
+  .bar {
+    position: static;
+    margin-inline: 0;
+    padding: 0;
+  }
+
   .bar__inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+
+  .bar__total {
+    flex-direction: row;
+    align-items: baseline;
     justify-content: space-between;
   }
 
+  .bar__total strong {
+    font-size: var(--text-figure);
+  }
+
   .bar .button--primary {
-    flex: 0 0 300px;
+    flex: none;
+  }
+}
+
+/*
+ * Desktop: the card fills the screen. The name, the photo and three reasons
+ * to buy on the left; a tall purchase panel on the right.
+ */
+@media (min-width: 960px) {
+  .product__layout {
+    flex: 1;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'intro info'
+      'frame info'
+      'facts info';
+    align-items: stretch;
+  }
+
+  .product__frame {
+    align-self: center;
+  }
+
+  .product__facts {
+    grid-area: facts;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+
+  .product__facts li {
+    display: grid;
+    align-content: start;
+    gap: var(--space-1);
+    padding: var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    background: var(--surface);
+  }
+
+  .product__facts strong {
+    color: var(--ink);
+    font-size: var(--text-small);
+  }
+
+  .product__facts span {
+    color: var(--ink-2);
+    font-size: var(--text-caption);
+  }
+
+  .bar {
+    margin-top: auto;
   }
 }

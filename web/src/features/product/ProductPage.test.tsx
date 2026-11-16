@@ -78,6 +78,16 @@ describe('ProductPage', () => {
       expect(payButton()).toBeEnabled()
     })
 
+    it('lists three reasons to buy it', () => {
+      renderProduct()
+
+      const reasons = screen.getAllByRole('listitem')
+      expect(reasons).toHaveLength(3)
+      expect(reasons[0]).toHaveTextContent('Folds flat')
+      expect(reasons[1]).toHaveTextContent('Stabilised camera')
+      expect(reasons[2]).toHaveTextContent('Easy to fly')
+    })
+
     it('warns when only a few units are left', () => {
       renderProduct({ items: [fewLeft] })
 

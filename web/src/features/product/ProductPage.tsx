@@ -62,6 +62,13 @@ function ProductName({ name }: { name: string }) {
   )
 }
 
+/** The reasons to buy it, taken from its description. Shown on wide screens. */
+const HIGHLIGHTS = [
+  { title: 'Folds flat', detail: 'Light to carry all day' },
+  { title: 'Stabilised camera', detail: 'Smooth video in a breeze' },
+  { title: 'Easy to fly', detail: 'Ready on your first try' },
+]
+
 /** One product: what it is, what it costs, how many are left, and the way to pay. */
 export function ProductPage() {
   const dispatch = useAppDispatch()
@@ -97,6 +104,15 @@ export function ProductPage() {
           <ProductPhoto product={product} className="product__photo" />
         </div>
 
+        <ul className="product__facts">
+          {HIGHLIGHTS.map(({ title, detail }) => (
+            <li key={title}>
+              <strong>{title}</strong>
+              <span>{detail}</span>
+            </li>
+          ))}
+        </ul>
+
         <div className="product__info">
           <div className="product__row">
             <strong className="product__price" data-testid="price">
@@ -120,25 +136,25 @@ export function ProductPage() {
           <p className="product__note">
             Fees and delivery are shown before you pay.
           </p>
+
+          <footer className="bar">
+            <div className="bar__inner">
+              <div className="bar__total">
+                <span>Total</span>
+                <strong data-testid="total">{formatCop(total)}</strong>
+              </div>
+              <button
+                type="button"
+                className="button button--primary"
+                disabled={soldOut}
+                onClick={() => dispatch(checkoutStarted())}
+              >
+                Pay with credit card
+              </button>
+            </div>
+          </footer>
         </div>
       </div>
-
-      <footer className="bar">
-        <div className="bar__inner">
-          <div className="bar__total">
-            <span>Total</span>
-            <strong data-testid="total">{formatCop(total)}</strong>
-          </div>
-          <button
-            type="button"
-            className="button button--primary"
-            disabled={soldOut}
-            onClick={() => dispatch(checkoutStarted())}
-          >
-            Pay with credit card
-          </button>
-        </div>
-      </footer>
     </section>
   )
 }
