@@ -11,7 +11,7 @@ import {
   PaymentSummaryError,
 } from '../../domain/payment/payment-summary';
 import { reserveStock, StockError } from '../../domain/product/product';
-import { err, ok, Result } from '../../domain/shared/result';
+import { andThen, err, ok, Result } from '../../domain/shared/result';
 import {
   createPendingTransaction,
   CreateTransactionError as InvalidTransactionError,
@@ -72,36 +72,38 @@ export class CreateTransactionUseCase {
       return err('PRODUCT_NOT_FOUND');
     }
 
-    const available = reserveStock(product, command.quantity);
-    if (!available.ok) {
-      return available;
-    }
-
-    // The amount always comes from the stored price, never from the client.
-    const summary = calculatePaymentSummary(
-      { unitPriceInCents: product.priceInCents, quantity: command.quantity },
-      this.fees,
-    );
-    if (!summary.ok) {
-      return summary;
-    }
-
     const id = command.idempotencyKey ?? this.ids.uuid();
-    const created = createPendingTransaction({
-      id,
-      reference: `ORDER-${id}`,
-      productId: product.id,
-      quantity: command.quantity,
-      unitPriceInCents: product.priceInCents,
-      baseFeeInCents: summary.value.baseFeeInCents,
-      deliveryFeeInCents: summary.value.deliveryFeeInCents,
-      amountInCents: summary.value.totalInCents,
-      createdAt: this.clock.now(),
-    });
-    if (!created.ok) {
-      return created;
+
+    // One railway: each step runs only if the one before succeeded, and the
+    // first failure is the answer. The amount always comes from the stored
+    // price, never from the client.
+    const order = andThen(
+      andThen(reserveStock(product, command.quantity), () =>
+        calculatePaymentSummary(
+          {
+            unitPriceInCents: product.priceInCents,
+            quantity: command.quantity,
+          },
+          this.fees,
+        ),
+      ),
+      (summary) =>
+        createPendingTransaction({
+          id,
+          reference: `ORDER-${id}`,
+          productId: product.id,
+          quantity: command.quantity,
+          unitPriceInCents: product.priceInCents,
+          baseFeeInCents: summary.baseFeeInCents,
+          deliveryFeeInCents: summary.deliveryFeeInCents,
+          amountInCents: summary.totalInCents,
+          createdAt: this.clock.now(),
+        }),
+    );
+    if (!order.ok) {
+      return order;
     }
-    const transaction = created.value;
+    const transaction = order.value;
 
     // Stored as PENDING first: if the gateway call is lost, the purchase is
     // still on record and can be resolved later.

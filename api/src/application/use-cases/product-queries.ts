@@ -10,7 +10,7 @@ import {
   reserveStock,
   StockError,
 } from '../../domain/product/product';
-import { err, ok, Result } from '../../domain/shared/result';
+import { andThen, err, ok, Result } from '../../domain/shared/result';
 
 export type ProductNotFound = 'PRODUCT_NOT_FOUND';
 
@@ -44,13 +44,11 @@ export class ProductQueries {
     if (!product) {
       return err('PRODUCT_NOT_FOUND');
     }
-    const available = reserveStock(product, quantity);
-    if (!available.ok) {
-      return available;
-    }
-    return calculatePaymentSummary(
-      { unitPriceInCents: product.priceInCents, quantity },
-      this.fees,
+    return andThen(reserveStock(product, quantity), () =>
+      calculatePaymentSummary(
+        { unitPriceInCents: product.priceInCents, quantity },
+        this.fees,
+      ),
     );
   }
 }
